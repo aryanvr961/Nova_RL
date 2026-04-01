@@ -1,0 +1,18 @@
+# =============================================================================
+# File: requirements.txt
+# Owner: Aryan
+# Role: Dependency manifest
+# =============================================================================
+#
+# Purpose
+# - This file will define the final Python dependencies for local runs,
+#   Docker builds, and deployment.
+#
+# What this file should contain later
+# - Only the packages required for the MVP submission.
+# - Versions pinned or constrained where needed for reproducibility.
+#
+# Constraints
+# - Keep the dependency set lightweight.
+# - Avoid heavy libraries unless they are genuinely required.
+# - Prefer stability and reproducibility over experimentation.
