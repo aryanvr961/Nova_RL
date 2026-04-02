@@ -3,25 +3,227 @@
 # Owner: Aryan
 # Role: Main OpenEnv environment implementation
 # =============================================================================
-#
-# Purpose
-# - This is the core environment file.
-# - It will coordinate task loading, state initialization, action execution,
-#   reward generation, and episode transitions.
-#
-# What this file should contain later
-# - reset() to initialize a clean deterministic environment state.
-# - step(action) to apply an action and return observation, reward, done, info.
-# - state() to expose the current state representation.
-# - Task selection or task loading logic.
-# - Episode boundary handling.
-#
-# Design expectations
-# - The environment should represent a real-world ETL remediation workflow.
-# - Each task should reuse the same core environment contract.
-# - Logic should remain lightweight and validator-friendly for the MVP.
-#
-# Constraints
-# - Do not move grading logic into this file unless necessary.
-# - Do not overload this file with deployment-specific concerns.
-# - Keep state transitions deterministic and easy to inspect.
+
+from __future__ import annotations
+
+import importlib
+import random
+from typing import Any, Dict, Mapping
+
+from .models import Action, Observation, Reward
+from .rewards import build_reward
+
+
+DEFAULT_TASKS: Dict[str, Dict[str, Any]] = {
+    "easy": {
+        "objective": "Handle null values and exact duplicate rows safely.",
+        "anomaly_rate": 0.05,
+        "max_steps": 8,
+    },
+    "medium": {
+        "objective": "Handle type mismatches and malformed date values.",
+        "anomaly_rate": 0.15,
+        "max_steps": 8,
+    },
+    "hard": {
+        "objective": "Handle schema drift and correlated multi-column issues.",
+        "anomaly_rate": 0.30,
+        "max_steps": 8,
+    },
+}
+
+
+class NovaRLEnv:
+    """Lightweight OpenEnv-style environment with low-conflict extension points."""
+
+    def __init__(self, task_id: str = "easy") -> None:
+        self.task_id = task_id
+        self.task_config = self._get_task_config(task_id)
+        self.seed = 42
+        self.step_index = 0
+        self.current_threshold = 0.5
+        self.last_action: str | None = None
+        self.batch: Dict[str, Any] = {}
+        self.current_metrics: Dict[str, float] = {}
+        self.done = False
+
+    def set_task(self, task_id: str) -> None:
+        self.task_id = task_id
+        self.task_config = self._get_task_config(task_id)
+
+    def reset(self, seed: int | None = None) -> Observation:
+        self.seed = 42 if seed is None else seed
+        self.step_index = 0
+        self.current_threshold = 0.5
+        self.last_action = None
+        self.done = False
+        self.batch = self._generate_batch()
+        self.current_metrics = {
+            "fix_accuracy": 0.0,
+            "promotion_precision": 0.0,
+            "quarantine_precision": 0.0,
+        }
+        return self.state()
+
+    def state(self) -> Observation:
+        return Observation(
+            task_id=self.task_id,  # type: ignore[arg-type]
+            step_index=self.step_index,
+            max_steps=int(self.task_config.get("max_steps", 8)),
+            batch_size=int(self.batch.get("batch_size", 0)),
+            anomaly_counts=dict(self.batch.get("anomaly_counts", {})),
+            current_metrics=dict(self.current_metrics),
+            sample_issue_summaries=list(self.batch.get("sample_issue_summaries", [])),
+            current_threshold=self.current_threshold,
+            remaining_steps=max(0, int(self.task_config.get("max_steps", 8)) - self.step_index),
+            last_action=self.last_action,
+        )
+
+    def step(self, action: Action) -> tuple[Observation, Reward, bool, Dict[str, Any]]:
+        if self.done:
+            reward = build_reward(
+                step_penalty=0.0,
+                metadata={"reason": "episode_already_complete"},
+            )
+            return self.state(), reward, True, {"metrics": self.current_metrics}
+
+        self.step_index += 1
+        self.current_threshold = action.threshold
+        self.last_action = action.decision
+
+        progress = min(1.0, self.step_index / int(self.task_config.get("max_steps", 8)))
+        self.current_metrics = self._estimate_metrics(action, progress)
+
+        reward = build_reward(
+            correct_fix_gain=self.current_metrics["fix_accuracy"] * 0.2,
+            unsafe_promotion_penalty=(
+                0.08 if action.decision == "promote" and action.threshold < 0.45 else 0.0
+            ),
+            over_quarantine_penalty=(
+                0.08 if action.decision == "quarantine" and action.threshold > 0.75 else 0.0
+            ),
+            step_penalty=0.01,
+            metadata={"task_id": self.task_id, "step_index": self.step_index},
+        )
+
+        done = (
+            action.decision == "finalize"
+            or self.step_index >= int(self.task_config.get("max_steps", 8))
+        )
+        self.done = done
+
+        info = {
+            "task_objective": self.task_config.get("objective", ""),
+            "metrics": dict(self.current_metrics),
+            "grade": self._grade(action),
+        }
+        return self.state(), reward, done, info
+
+    def _get_task_config(self, task_id: str) -> Dict[str, Any]:
+        try:
+            task_module = importlib.import_module("nova_rl_env.tasks")
+            tasks_obj = getattr(task_module, "TASKS", None)
+            if isinstance(tasks_obj, Mapping) and task_id in tasks_obj:
+                cfg = tasks_obj[task_id]
+                if isinstance(cfg, Mapping):
+                    return dict(cfg)
+                if hasattr(cfg, "__dict__"):
+                    return dict(vars(cfg))
+            get_task = getattr(task_module, "get_task_config", None)
+            if callable(get_task):
+                cfg = get_task(task_id)
+                if isinstance(cfg, Mapping):
+                    return dict(cfg)
+        except Exception:
+            pass
+        return dict(DEFAULT_TASKS[task_id])
+
+    def _generate_batch(self) -> Dict[str, Any]:
+        try:
+            datagen_module = importlib.import_module("nova_rl_env.datagen")
+            generate_batch = getattr(datagen_module, "generate_batch", None)
+            if callable(generate_batch):
+                batch = generate_batch(task_id=self.task_id, seed=self.seed, task_config=self.task_config)
+                if isinstance(batch, Mapping):
+                    return dict(batch)
+        except Exception:
+            pass
+
+        rng = random.Random(self.seed)
+        batch_size = 100
+        anomaly_rate = float(self.task_config.get("anomaly_rate", 0.1))
+        anomaly_budget = max(1, int(batch_size * anomaly_rate))
+        anomaly_types = {
+            "easy": ["null_field", "duplicate_key"],
+            "medium": ["null_field", "duplicate_key", "type_mismatch", "malformed_date"],
+            "hard": [
+                "null_field",
+                "duplicate_key",
+                "type_mismatch",
+                "malformed_date",
+                "schema_drift",
+            ],
+        }[self.task_id]
+        anomaly_counts = {name: 0 for name in anomaly_types}
+        for _ in range(anomaly_budget):
+            anomaly_counts[rng.choice(anomaly_types)] += 1
+        return {
+            "batch_size": batch_size,
+            "anomaly_counts": anomaly_counts,
+            "sample_issue_summaries": [
+                f"{name}: {count} rows affected"
+                for name, count in anomaly_counts.items()
+                if count > 0
+            ][:3],
+        }
+
+    def _estimate_metrics(self, action: Action, progress: float) -> Dict[str, float]:
+        if action.decision == "fix":
+            return {
+                "fix_accuracy": min(1.0, 0.35 + 0.55 * progress),
+                "promotion_precision": min(1.0, 0.25 + 0.35 * progress),
+                "quarantine_precision": min(1.0, 0.20 + 0.30 * progress),
+            }
+        if action.decision == "quarantine":
+            return {
+                "fix_accuracy": min(1.0, 0.15 + 0.20 * progress),
+                "promotion_precision": min(1.0, 0.15 + 0.20 * progress),
+                "quarantine_precision": min(1.0, 0.40 + 0.45 * progress),
+            }
+        if action.decision == "promote":
+            return {
+                "fix_accuracy": min(1.0, 0.10 + 0.20 * progress),
+                "promotion_precision": min(1.0, 0.35 + 0.45 * progress),
+                "quarantine_precision": min(1.0, 0.05 + 0.10 * progress),
+            }
+        return {
+            "fix_accuracy": min(1.0, 0.05 + 0.10 * progress),
+            "promotion_precision": min(1.0, 0.05 + 0.10 * progress),
+            "quarantine_precision": min(1.0, 0.05 + 0.10 * progress),
+        }
+
+    def _grade(self, action: Action) -> float:
+        try:
+            graders_module = importlib.import_module("nova_rl_env.graders")
+            grade = getattr(graders_module, "grade", None)
+            if callable(grade):
+                return float(
+                    grade(
+                        task_id=self.task_id,
+                        state={
+                            "batch": self.batch,
+                            "metrics": self.current_metrics,
+                            "step_index": self.step_index,
+                        },
+                        action=action,
+                    )
+                )
+        except Exception:
+            pass
+
+        score = (
+            0.6 * self.current_metrics.get("fix_accuracy", 0.0)
+            + 0.2 * self.current_metrics.get("promotion_precision", 0.0)
+            + 0.2 * self.current_metrics.get("quarantine_precision", 0.0)
+        )
+        return max(0.0, min(1.0, score))

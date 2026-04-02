@@ -1,20 +1,9 @@
-# =============================================================================
-# File: openenv.yaml
-# Owner: Aryan
-# Role: OpenEnv registration and metadata config
-# =============================================================================
-#
-# Purpose
-# - This file will register the environment entrypoint and task metadata.
-# - It should match the final implementation exactly.
-#
-# What this file should contain later
-# - Environment name.
-# - Entrypoint reference.
-# - Task list for easy, medium, and hard.
-# - Minimal metadata needed by the framework or validator.
-#
-# Constraints
-# - Keep the structure valid for the final OpenEnv schema.
-# - Do not add speculative fields unless they are actually supported.
-# - Ensure the task names match tasks.py and inference.py exactly.
+name: nova-rl
+entrypoint: app:app
+tasks:
+  - easy
+  - medium
+  - hard
+metadata:
+  domain: etl-data-remediation
+  environment_class: NovaRLEnv

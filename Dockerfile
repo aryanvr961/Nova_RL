@@ -1,21 +1,12 @@
-# =============================================================================
-# File: Dockerfile
-# Owner: Aryan
-# Role: Container build specification
-# =============================================================================
-#
-# Purpose
-# - This file will define how the project is built and run inside a container.
-# - It is required for packaging and likely required for HF deployment.
-#
-# What this file should contain later
-# - Base Python image.
-# - Dependency installation steps.
-# - Project copy steps.
-# - Final runtime command.
-#
-# Constraints
-# - The image must build cleanly.
-# - The container must start cleanly.
-# - Keep the image as small and simple as possible.
-# - Do not rely on machine-specific local state.
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+EXPOSE 7860
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]

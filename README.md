@@ -1,14 +1,30 @@
 # Nova RL
 
-Nova RL is an OpenEnv project scaffold for a real-world ETL data remediation environment. The benchmark is designed around structured data quality workflows where an LLM agent reviews noisy tabular batches, chooses remediation actions, and is evaluated through deterministic grading.
+Nova RL is an OpenEnv-style ETL data remediation environment being prepared for hackathon submission. The project is centered on a real-world workflow where an agent reviews noisy tabular batches, takes structured remediation decisions, and is evaluated through deterministic rewards and grading.
 
-## Project Status
+## Current Status
 
-This repository is currently in scaffold stage. The file structure, ownership boundaries, and submission-facing components are in place, while the environment logic and baseline implementation are intended to be completed next.
+The repository is no longer only a file scaffold. It now contains:
+
+- a typed model layer
+- a reusable reward layer
+- a lightweight environment skeleton
+- a baseline inference flow using the OpenAI client
+- deployment-facing files for container and HF startup
+
+Task definitions, data generation, and task-specific grading are still being completed and integrated.
 
 ## Problem Setting
 
-Modern data pipelines often fail because of issues such as missing values, duplicate records, malformed dates, schema drift, and type inconsistencies. Nova RL turns that operational workflow into an agent benchmark that can be evaluated through a standard environment interface.
+Modern ETL pipelines frequently fail because of:
+
+- missing values
+- duplicate records
+- malformed dates
+- type mismatches
+- schema drift
+
+Nova RL turns that operational cleanup workflow into an agent benchmark with a standard environment contract.
 
 ## Environment Scope
 
@@ -17,25 +33,81 @@ Modern data pipelines often fail because of issues such as missing values, dupli
 - Difficulty levels: `easy`, `medium`, `hard`
 - Typed models: `Observation`, `Action`, `Reward`
 
+## Implemented Foundation
+
+### Models
+
+The repository already includes typed models for:
+
+- `Observation`
+- `Action`
+- `Reward`
+
+These provide the shared contract across the environment, inference, and reward layers.
+
+### Reward Layer
+
+The reward module already includes:
+
+- reusable reward composition helpers
+- support for dense step-wise reward signals
+- explicit penalty channels for unsafe promotion, over-quarantine, and step cost
+
+### Environment Base
+
+The current environment implementation already includes:
+
+- task switching
+- deterministic reset flow
+- observation generation
+- step transitions
+- fallback task config loading
+- fallback batch generation
+- fallback grade computation
+
+This is intended to support low-conflict parallel development while task-specific logic is being finalized.
+
+### Baseline Inference
+
+The current inference flow already includes:
+
+- OpenAI client initialization
+- environment-variable-based configuration
+- task loop for `easy`, `medium`, and `hard`
+- observation-to-prompt conversion
+- structured action parsing
+
 ## Observation Space
 
-The observation design is intended to describe the current batch and environment state in a structured form. The final implementation is expected to include:
+The current observation contract is designed to expose:
 
 - task identifier
 - current step index
+- max steps
 - batch size
 - anomaly counts by type
-- issue summaries or sample diagnostics
-- current thresholds or policy state
-- remaining step budget
+- current metrics
+- issue summaries
+- current threshold
+- remaining steps
 - previous action summary
 
 ## Action Space
 
-The action design is intended to remain compact and structured for reliable evaluation. The final implementation is expected to include:
+The current action contract supports:
 
 - a bounded threshold value
-- a decision type such as fix, quarantine, promote, noop, or finalize
+- a structured decision type
+- optional notes
+- optional extensible parameters
+
+Current decision set:
+
+- `fix`
+- `quarantine`
+- `promote`
+- `noop`
+- `finalize`
 
 ## Task Design
 
@@ -45,22 +117,18 @@ Nova RL is planned around three required task levels:
 - Medium: handle type mismatches and malformed dates
 - Hard: handle schema drift and correlated multi-column issues
 
-Each task should represent a concrete objective, use deterministic grading, and return a score in the range `0.0` to `1.0`.
-
-## Reward and Evaluation
-
-The final environment is expected to use a dense reward strategy rather than a purely binary success signal. Reward shaping should reflect meaningful progress while penalizing unsafe promotion, over-quarantine, or wasteful actions.
-
-Evaluation should remain deterministic and reproducible across runs.
+Each task is expected to represent a concrete objective and produce deterministic scores in the range `0.0` to `1.0`.
 
 ## Repository Structure
 
 ```text
 NOVA_RL/
+├── .env.example
 ├── .gitignore
 ├── app.py
 ├── Dockerfile
 ├── inference.py
+├── NovaRL_Final_Roadmap.docx
 ├── openenv.yaml
 ├── README.md
 ├── requirements.txt
@@ -84,17 +152,17 @@ pip install -r requirements.txt
 
 ## Baseline Inference
 
-The final baseline must be implemented in root-level `inference.py` and should:
+The final baseline is expected to:
 
 - use the OpenAI client for LLM calls
-- read credentials from environment variables
+- read credentials from runtime environment variables
 - run all three tasks
 - print per-task scores and a final aggregate score
 - remain reproducible under fixed seeds
 
 ## Environment Variables
 
-Depending on the final inference setup, the project may use:
+Depending on runtime setup, the project may use:
 
 - `OPENAI_API_KEY`
 - `HF_TOKEN`
@@ -102,19 +170,33 @@ Depending on the final inference setup, the project may use:
 - `API_BASE_URL`
 - `MODEL_NAME`
 
+For local development, copy `.env.example` into `.env` and fill in the required values. For judge or HF execution, runtime-injected environment variables are expected.
+
 ## Deployment
 
-The repository includes the standard submission-facing files required for packaging and deployment:
+The repository includes deployment-facing files required for packaging:
 
 - `Dockerfile`
 - `openenv.yaml`
 - `app.py`
 
-These files are intended to support local containerization and Hugging Face Space deployment once implementation is completed.
+The current deployment layer is still in MVP stage and should be verified through final container and HF testing before submission.
+
+## Pending Integration Work
+
+The following pieces still need final task-specific implementation or alignment:
+
+- `tasks.py`
+- `datagen.py`
+- `graders.py`
+- final environment-to-grader contract
+- final environment-to-datagen contract
+- final `openenv.yaml` validation
+- final Docker and HF verification
 
 ## Baseline Scores
 
-Baseline scores will be recorded after implementation. The final README should include:
+Baseline scores will be recorded after full task integration. The final README should include:
 
 - Easy score
 - Medium score
