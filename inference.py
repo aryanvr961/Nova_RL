@@ -22,15 +22,13 @@ SEED = 42
 
 def build_client() -> OpenAI:
     api_key = (
-        os.getenv("OPENAI_API_KEY")
-        or os.getenv("HF_TOKEN")
+        os.getenv("HF_TOKEN")
         or os.getenv("API_KEY")
+        or os.getenv("OPENAI_API_KEY")
         or "DUMMY_KEY"
     )
-    base_url = os.getenv("API_BASE_URL")
-    if base_url:
-        return OpenAI(api_key=api_key, base_url=base_url)
-    return OpenAI(api_key=api_key)
+    base_url = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
+    return OpenAI(api_key=api_key, base_url=base_url)
 
 
 def observation_to_prompt(obs: Observation) -> str:
@@ -48,7 +46,7 @@ def parse_action(text: str) -> Action:
 
 
 def get_llm_action(client: OpenAI, obs: Observation) -> Action:
-    model_name = os.getenv("MODEL_NAME", "gpt-4o-mini")
+    model_name = os.getenv("MODEL_NAME", "openai/gpt-4o-mini")
     response = client.responses.create(
         model=model_name,
         input=observation_to_prompt(obs),

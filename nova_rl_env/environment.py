@@ -3,16 +3,14 @@
 # Owner: Aryan
 # Role: Main OpenEnv environment implementation
 # =============================================================================
-
 from __future__ import annotations
 
 import importlib
 import random
-from typing import Any, Dict, Mapping
+from typing import Any, Callable, Dict, Mapping, cast
 
 from .models import Action, Observation, Reward
 from .rewards import build_reward
-
 
 DEFAULT_TASKS: Dict[str, Dict[str, Any]] = {
     "easy": {
@@ -134,7 +132,7 @@ class NovaRLEnv:
                 cfg = get_task(task_id)
                 if isinstance(cfg, Mapping):
                     return dict(cfg)
-        except Exception:
+        except (ImportError, AttributeError, KeyError, TypeError, ValueError):
             pass
         return dict(DEFAULT_TASKS[task_id])
 
@@ -143,10 +141,14 @@ class NovaRLEnv:
             datagen_module = importlib.import_module("nova_rl_env.datagen")
             generate_batch = getattr(datagen_module, "generate_batch", None)
             if callable(generate_batch):
-                batch = generate_batch(task_id=self.task_id, seed=self.seed, task_config=self.task_config)
+                batch = generate_batch(
+                    task_id=self.task_id,
+                    seed=self.seed,
+                    task_config=self.task_config,
+                )
                 if isinstance(batch, Mapping):
                     return dict(batch)
-        except Exception:
+        except (ImportError, AttributeError, KeyError, TypeError, ValueError):
             pass
 
         rng = random.Random(self.seed)
@@ -154,11 +156,11 @@ class NovaRLEnv:
         anomaly_rate = float(self.task_config.get("anomaly_rate", 0.1))
         anomaly_budget = max(1, int(batch_size * anomaly_rate))
         anomaly_types = {
-            "easy": ["null_field", "duplicate_key"],
-            "medium": ["null_field", "duplicate_key", "type_mismatch", "malformed_date"],
+            "easy": ["null", "duplicate"],
+            "medium": ["null", "duplicate", "type_mismatch", "malformed_date"],
             "hard": [
-                "null_field",
-                "duplicate_key",
+                "null",
+                "duplicate",
                 "type_mismatch",
                 "malformed_date",
                 "schema_drift",
@@ -205,20 +207,25 @@ class NovaRLEnv:
     def _grade(self, action: Action) -> float:
         try:
             graders_module = importlib.import_module("nova_rl_env.graders")
-            grade = getattr(graders_module, "grade", None)
-            if callable(grade):
+            grade_fn = getattr(graders_module, "grade", None)
+            if callable(grade_fn):
+                typed_grade_fn = cast(
+                    Callable[..., float],
+                    grade_fn,
+                )
+                grading_state: Dict[str, Any] = {
+                    "batch": self.batch,
+                    "metrics": self.current_metrics,
+                    "step_index": self.step_index,
+                }
                 return float(
-                    grade(
+                    typed_grade_fn(
                         task_id=self.task_id,
-                        state={
-                            "batch": self.batch,
-                            "metrics": self.current_metrics,
-                            "step_index": self.step_index,
-                        },
+                        state=grading_state,
                         action=action,
                     )
                 )
-        except Exception:
+        except (ImportError, AttributeError, TypeError, ValueError):
             pass
 
         score = (

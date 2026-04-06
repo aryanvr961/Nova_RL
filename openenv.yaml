@@ -1,5 +1,9 @@
+spec_version: 1
 name: nova-rl
-entrypoint: app:app
+type: space
+runtime: fastapi
+app: app:app
+port: 7860
 tasks:
   - easy
   - medium
