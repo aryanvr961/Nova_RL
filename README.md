@@ -1,168 +1,153 @@
+<div align="center">
+
 # Nova RL
 
-Nova RL is an OpenEnv-style ETL data remediation environment being prepared for hackathon submission. The project is centered on a real-world workflow where an agent reviews noisy tabular batches, takes structured remediation decisions, and is evaluated through deterministic rewards and grading.
+### Game-style reinforcement learning arena for ETL data remediation
 
-## Current Status
+<img src="./assets/nova-dashboard.svg" alt="Nova RL game-style dashboard with missions, anomaly radar, actions, API console, and score bars" width="100%" />
 
-The repository is no longer only a file scaffold. It now contains:
+<br/>
 
-- a typed model layer
-- a reusable reward layer
-- a lightweight environment skeleton
-- a baseline inference flow using the OpenAI client
-- deployment-facing files for container and HF startup
+<img src="https://img.shields.io/badge/Python-0B1118?style=for-the-badge&logo=python&logoColor=00FFAA" />
+<img src="https://img.shields.io/badge/FastAPI-0B1118?style=for-the-badge&logo=fastapi&logoColor=00FFAA" />
+<img src="https://img.shields.io/badge/Docker-0B1118?style=for-the-badge&logo=docker&logoColor=34D8FF" />
+<img src="https://img.shields.io/badge/OpenEnv-0B1118?style=for-the-badge&logoColor=00FFAA" />
 
-Task definitions, data generation, and task-specific grading are still being completed and integrated.
+</div>
 
-## Problem Setting
+---
 
-Modern ETL pipelines frequently fail because of:
+## What Is Nova RL?
 
-- missing values
-- duplicate records
-- malformed dates
-- type mismatches
-- schema drift
+Nova RL turns ETL data cleanup into a small reinforcement learning game.
 
-Nova RL turns that operational cleanup workflow into an agent benchmark with a standard environment contract.
+An agent receives a noisy tabular batch, reads the current data quality state, chooses a remediation move, and gets scored from `0.0` to `1.0`. The challenge is to improve data quality without over-quarantining rows or promoting unsafe output.
 
-## Environment Scope
+---
 
-- Domain: ETL data quality remediation
-- Interface: `reset()`, `step(action)`, `state()`
-- Difficulty levels: `easy`, `medium`, `hard`
-- Typed models: `Observation`, `Action`, `Reward`
+## Task Arena
 
-## Implemented Foundation
-
-### Models
-
-The repository already includes typed models for:
-
-- `Observation`
-- `Action`
-- `Reward`
-
-These provide the shared contract across the environment, inference, and reward layers.
-
-### Reward Layer
-
-The reward module already includes:
-
-- reusable reward composition helpers
-- support for dense step-wise reward signals
-- explicit penalty channels for unsafe promotion, over-quarantine, and step cost
-
-### Environment Base
-
-The current environment implementation already includes:
-
-- task switching
-- deterministic reset flow
-- observation generation
-- step transitions
-- fallback task config loading
-- fallback batch generation
-- fallback grade computation
-
-This is intended to support low-conflict parallel development while task-specific logic is being finalized.
-
-### Baseline Inference
-
-The current inference flow already includes:
-
-- OpenAI client initialization
-- environment-variable-based configuration
-- task loop for `easy`, `medium`, and `hard`
-- observation-to-prompt conversion
-- structured action parsing
-
-## Observation Space
-
-The current observation contract is designed to expose:
-
-- task identifier
-- current step index
-- max steps
-- batch size
-- anomaly counts by type
-- current metrics
-- issue summaries
-- current threshold
-- remaining steps
-- previous action summary
-
-## Action Space
-
-The current action contract supports:
-
-- a bounded threshold value
-- a structured decision type
-- optional notes
-- optional extensible parameters
-
-Current decision set:
-
-- `fix`
-- `quarantine`
-- `promote`
-- `noop`
-- `finalize`
-
-## Task Design
-
-Nova RL is planned around three required task levels:
-
-- Easy: handle null values and exact duplicates safely
-- Medium: handle type mismatches and malformed dates
-- Hard: handle schema drift and correlated multi-column issues
-
-Each task is expected to represent a concrete objective and produce deterministic scores in the range `0.0` to `1.0`.
-
-## Repository Structure
+| Level | Mission | Agent must learn |
+|---|---|---|
+| Easy | Nulls and exact duplicates | Clean obvious row-level issues safely |
+| Medium | Type mismatches and malformed dates | Repair values without damaging valid records |
+| Hard | Schema drift and correlated issues | Handle multi-column quality failures |
 
 ```text
-NOVA_RL/
-├── .env.example
-├── .gitignore
-├── app.py
-├── Dockerfile
-├── inference.py
-├── NovaRL_Final_Roadmap.docx
-├── openenv.yaml
-├── README.md
-├── requirements.txt
-└── nova_rl_env/
-    ├── __init__.py
-    ├── datagen.py
-    ├── environment.py
-    ├── graders.py
-    ├── models.py
-    ├── rewards.py
-    └── tasks.py
+EASY    [################----] 80%
+MEDIUM  [###########---------] 54%
+HARD    [#########-----------] 47%
 ```
 
-## Setup
+---
 
-Install project dependencies:
+## How A Round Works
+
+```text
+Noisy batch -> observation -> agent action -> environment update -> grader -> score
+```
+
+The environment loop is intentionally simple:
+
+| Call | Purpose |
+|---|---|
+| `reset()` | Start a new task episode |
+| `state()` | Read current batch signals and metrics |
+| `step(action)` | Apply one remediation action |
+| `finalize` | End the episode and submit output for scoring |
+
+---
+
+## Action Deck
+
+| Action | Use it when |
+|---|---|
+| `fix` | The batch has repairable anomalies |
+| `quarantine` | Bad records should be isolated instead of promoted |
+| `promote` | The current output is clean enough to approve |
+| `noop` | The safest move is to leave the batch unchanged |
+| `finalize` | The agent is ready to end the episode |
+
+---
+
+## API Console
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/ping` | Liveness check |
+| `GET` | `/health` | Runtime health status |
+| `GET` | `/reset` | Reset the environment |
+| `GET` | `/state` | Fetch the current observation |
+| `POST` | `/step` | Submit an agent action |
+
+---
+
+## Quick Start
 
 ```bash
 pip install -r requirements.txt
+cp .env.example .env
+python inference.py
 ```
 
-## Baseline Inference
+Run the API locally:
 
-The final baseline is expected to:
+```bash
+uvicorn app:app --host 0.0.0.0 --port 8000
+```
 
-- use the OpenAI client for LLM calls
-- read credentials from runtime environment variables
-- run all three tasks
-- print per-task scores and a final aggregate score
-- remain reproducible under fixed seeds
+---
 
-## Environment Variables
+## Project Layout
 
-Depending on runtime setup, the project may use:
+```text
+NOVA_RL/
+|-- app.py
+|-- inference.py
+|-- Dockerfile
+|-- openenv.yaml
+|-- requirements.txt
+|-- assets/
+|   `-- nova-dashboard.svg
+`-- nova_rl_env/
+    |-- environment.py
+    |-- datagen.py
+    |-- graders.py
+    |-- tasks.py
+    |-- rewards.py
+    `-- models.py
+```
+
+---
+
+## Expand The Internals
+
+<details>
+<summary><strong>Observation signals</strong></summary>
+
+- task id
+- step index and remaining steps
+- batch size
+- anomaly counts by type
+- data quality metrics
+- issue summaries
+- previous action summary
+
+</details>
+
+<details>
+<summary><strong>Reward design</strong></summary>
+
+- reward clean remediation
+- penalize unsafe promotion
+- penalize excessive quarantine
+- penalize wasted steps
+- keep scoring deterministic for benchmark runs
+
+</details>
+
+<details>
+<summary><strong>Environment variables</strong></summary>
 
 - `OPENAI_API_KEY`
 - `HF_TOKEN`
@@ -170,44 +155,17 @@ Depending on runtime setup, the project may use:
 - `API_BASE_URL`
 - `MODEL_NAME`
 
-For local development, copy `.env.example` into `.env` and fill in the required values. For judge or HF execution, runtime-injected environment variables are expected.
+</details>
 
-## Deployment
+---
 
-The repository includes deployment-facing files required for packaging:
+## Contributors
 
-- `Dockerfile`
-- `openenv.yaml`
-- `app.py`
+- Aryan Verma
+- Aadyaa Soni
 
-The current deployment layer is still in MVP stage and should be verified through final container and HF testing before submission.
+<div align="center">
 
-## Pending Integration Work
+### Built for deterministic ETL cleanup, agent evaluation, and hackathon demos.
 
-The following pieces still need final task-specific implementation or alignment:
-
-- `tasks.py`
-- `datagen.py`
-- `graders.py`
-- final environment-to-grader contract
-- final environment-to-datagen contract
-- final `openenv.yaml` validation
-- final Docker and HF verification
-
-## Baseline Scores
-
-Baseline scores will be recorded after full task integration. The final README should include:
-
-- Easy score
-- Medium score
-- Hard score
-- Final mean score
-
-## Ownership
-
-- Aryan: environment, models, rewards, inference, deployment-facing files
-- Aadyaa: tasks, data generation, grading logic, and task-facing documentation
-
-## Submission Goal
-
-The final deliverable should be lightweight, deterministic, compliant with the OpenEnv interface, and cleanly deployable for hackathon evaluation.
+</div>

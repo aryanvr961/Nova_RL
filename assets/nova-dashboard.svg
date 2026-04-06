@@ -1,0 +1,173 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Nova RL dashboard</title>
+  <desc id="desc">Game-style dashboard for an ETL data remediation reinforcement learning environment.</desc>
+  <style>
+    .bg { fill: #081018; }
+    .panel { fill: #0d1722; stroke: #1f3342; stroke-width: 1.5; }
+    .panel-strong { fill: #101e2b; stroke: #00ffaa; stroke-width: 1.5; }
+    .text { font-family: "Segoe UI", Arial, sans-serif; fill: #d8f7ef; }
+    .muted { font-family: "Segoe UI", Arial, sans-serif; fill: #6f8795; }
+    .mono { font-family: "Cascadia Mono", "JetBrains Mono", Consolas, monospace; fill: #a8ffdf; }
+    .green { fill: #00ffaa; }
+    .cyan { fill: #34d8ff; }
+    .yellow { fill: #ffd166; }
+    .red { fill: #ff5c7a; }
+    .line { stroke: #00ffaa; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .line-soft { stroke: #1b4d50; stroke-width: 2; stroke-linecap: round; }
+    .grid { stroke: #162838; stroke-width: 1; }
+    .chip { fill: #122434; stroke: #233d50; stroke-width: 1; }
+    .bar-bg { fill: #172533; }
+    .bar { fill: #00ffaa; }
+    .bar2 { fill: #34d8ff; }
+    .bar3 { fill: #ffd166; }
+    .pulse { animation: pulse 2s ease-in-out infinite; transform-origin: center; }
+    .float { animation: float 4s ease-in-out infinite; }
+    .scan { animation: scan 5s linear infinite; }
+    @keyframes pulse { 0%,100% { opacity: .65; } 50% { opacity: 1; } }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    @keyframes scan { from { transform: translateY(-80px); } to { transform: translateY(740px); } }
+  </style>
+
+  <rect class="bg" width="1280" height="720"/>
+  <g opacity="0.42">
+    <path class="grid" d="M0 80H1280M0 160H1280M0 240H1280M0 320H1280M0 400H1280M0 480H1280M0 560H1280M0 640H1280"/>
+    <path class="grid" d="M80 0V720M160 0V720M240 0V720M320 0V720M400 0V720M480 0V720M560 0V720M640 0V720M720 0V720M800 0V720M880 0V720M960 0V720M1040 0V720M1120 0V720M1200 0V720"/>
+  </g>
+  <rect class="scan" x="0" y="0" width="1280" height="80" fill="url(#scanGradient)" opacity="0.16"/>
+
+  <defs>
+    <linearGradient id="scanGradient" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#00ffaa" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#00ffaa"/>
+      <stop offset="1" stop-color="#00ffaa" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g transform="translate(60 44)">
+    <text class="mono" x="0" y="0" font-size="18">NOVA_RL / AGENT ARENA</text>
+    <text class="text" x="0" y="54" font-size="50" font-weight="800">ETL Remediation Control Room</text>
+    <text class="muted" x="2" y="88" font-size="18">Train an agent to repair noisy batches, avoid unsafe promotion, and maximize final data quality.</text>
+  </g>
+
+  <g transform="translate(980 42)">
+    <rect class="panel-strong" width="240" height="86" rx="14"/>
+    <text class="muted" x="24" y="30" font-size="15">FINAL SCORE RANGE</text>
+    <text class="text" x="24" y="64" font-size="32" font-weight="800">0.0 - 1.0</text>
+    <circle class="pulse" cx="204" cy="44" r="18" stroke="#00ffaa" stroke-width="4" filter="url(#glow)"/>
+  </g>
+
+  <g transform="translate(60 155)">
+    <rect class="panel" width="360" height="250" rx="18"/>
+    <text class="text" x="24" y="38" font-size="24" font-weight="800">Mission Board</text>
+    <text class="muted" x="24" y="65" font-size="15">Difficulty levels and baseline targets</text>
+
+    <g transform="translate(24 92)">
+      <rect class="chip" width="312" height="38" rx="9"/>
+      <text class="text" x="16" y="25" font-size="16" font-weight="700">EASY</text>
+      <rect class="bar-bg" x="88" y="11" width="170" height="16" rx="8"/>
+      <rect class="bar" x="88" y="11" width="136" height="16" rx="8"/>
+      <text class="mono" x="270" y="25" font-size="14">80%</text>
+    </g>
+
+    <g transform="translate(24 145)">
+      <rect class="chip" width="312" height="38" rx="9"/>
+      <text class="text" x="16" y="25" font-size="16" font-weight="700">MEDIUM</text>
+      <rect class="bar-bg" x="88" y="11" width="170" height="16" rx="8"/>
+      <rect class="bar2" x="88" y="11" width="92" height="16" rx="8"/>
+      <text class="mono" x="270" y="25" font-size="14">54%</text>
+    </g>
+
+    <g transform="translate(24 198)">
+      <rect class="chip" width="312" height="38" rx="9"/>
+      <text class="text" x="16" y="25" font-size="16" font-weight="700">HARD</text>
+      <rect class="bar-bg" x="88" y="11" width="170" height="16" rx="8"/>
+      <rect class="bar3" x="88" y="11" width="80" height="16" rx="8"/>
+      <text class="mono" x="270" y="25" font-size="14">47%</text>
+    </g>
+  </g>
+
+  <g transform="translate(455 155)">
+    <rect class="panel" width="360" height="250" rx="18"/>
+    <text class="text" x="24" y="38" font-size="24" font-weight="800">Anomaly Radar</text>
+    <text class="muted" x="24" y="65" font-size="15">Batch signals observed by the agent</text>
+
+    <g transform="translate(44 88)">
+      <path class="grid" d="M0 120H278M0 80H278M0 40H278M0 0H278"/>
+      <path class="line-soft" d="M0 120H278"/>
+      <rect class="bar" x="16" y="42" width="28" height="78" rx="6"/>
+      <rect class="bar2" x="70" y="20" width="28" height="100" rx="6"/>
+      <rect class="bar3" x="124" y="68" width="28" height="52" rx="6"/>
+      <rect class="bar" x="178" y="34" width="28" height="86" rx="6"/>
+      <rect class="red" x="232" y="78" width="28" height="42" rx="6"/>
+      <text class="muted" x="2" y="148" font-size="12">nulls</text>
+      <text class="muted" x="54" y="148" font-size="12">types</text>
+      <text class="muted" x="110" y="148" font-size="12">dates</text>
+      <text class="muted" x="165" y="148" font-size="12">drift</text>
+      <text class="muted" x="218" y="148" font-size="12">dupes</text>
+    </g>
+  </g>
+
+  <g transform="translate(850 155)">
+    <rect class="panel" width="370" height="250" rx="18"/>
+    <text class="text" x="24" y="38" font-size="24" font-weight="800">Agent Actions</text>
+    <text class="muted" x="24" y="65" font-size="15">Five moves, one remediation strategy</text>
+
+    <g class="float" transform="translate(185 132)">
+      <circle r="70" stroke="#153747" stroke-width="12"/>
+      <circle r="70" stroke="#00ffaa" stroke-width="12" stroke-dasharray="240 440" stroke-linecap="round" filter="url(#glow)"/>
+      <text class="text" x="-38" y="-8" font-size="22" font-weight="800">POLICY</text>
+      <text class="muted" x="-38" y="20" font-size="14">step(action)</text>
+    </g>
+
+    <g>
+      <rect class="chip" x="22" y="91" width="92" height="32" rx="8"/><text class="mono" x="43" y="113" font-size="13">fix</text>
+      <rect class="chip" x="246" y="91" width="102" height="32" rx="8"/><text class="mono" x="262" y="113" font-size="13">promote</text>
+      <rect class="chip" x="22" y="190" width="118" height="32" rx="8"/><text class="mono" x="38" y="212" font-size="13">quarantine</text>
+      <rect class="chip" x="250" y="190" width="82" height="32" rx="8"/><text class="mono" x="272" y="212" font-size="13">noop</text>
+      <rect class="chip" x="139" y="72" width="102" height="32" rx="8"/><text class="mono" x="154" y="94" font-size="13">finalize</text>
+    </g>
+  </g>
+
+  <g transform="translate(60 440)">
+    <rect class="panel" width="760" height="210" rx="18"/>
+    <text class="text" x="24" y="38" font-size="24" font-weight="800">Game Loop</text>
+    <text class="muted" x="24" y="65" font-size="15">Noisy batch to validated output through repeatable environment calls</text>
+
+    <g transform="translate(38 105)">
+      <rect class="panel-strong" x="0" y="0" width="130" height="58" rx="12"/>
+      <text class="text" x="22" y="35" font-size="16" font-weight="800">reset()</text>
+      <path class="line" d="M140 29H215"/>
+
+      <rect class="panel-strong" x="225" y="0" width="130" height="58" rx="12"/>
+      <text class="text" x="250" y="35" font-size="16" font-weight="800">state()</text>
+      <path class="line" d="M365 29H440"/>
+
+      <rect class="panel-strong" x="450" y="0" width="130" height="58" rx="12"/>
+      <text class="text" x="473" y="35" font-size="16" font-weight="800">step()</text>
+      <path class="line" d="M590 29H665"/>
+
+      <rect class="panel-strong" x="675" y="0" width="130" height="58" rx="12"/>
+      <text class="text" x="695" y="35" font-size="16" font-weight="800">grade</text>
+    </g>
+  </g>
+
+  <g transform="translate(850 440)">
+    <rect class="panel" width="370" height="210" rx="18"/>
+    <text class="text" x="24" y="38" font-size="24" font-weight="800">API Console</text>
+    <text class="muted" x="24" y="65" font-size="15">FastAPI endpoints for evaluation</text>
+    <g transform="translate(24 93)">
+      <rect class="chip" width="92" height="32" rx="8"/><text class="mono" x="18" y="22" font-size="13">/ping</text>
+      <rect class="chip" x="112" width="98" height="32" rx="8"/><text class="mono" x="128" y="22" font-size="13">/health</text>
+      <rect class="chip" x="230" width="98" height="32" rx="8"/><text class="mono" x="246" y="22" font-size="13">/reset</text>
+      <rect class="chip" y="52" width="94" height="32" rx="8"/><text class="mono" x="18" y="74" font-size="13">/state</text>
+      <rect class="chip" x="112" y="52" width="94" height="32" rx="8"/><text class="mono" x="130" y="74" font-size="13">/step</text>
+    </g>
+  </g>
+</svg>
