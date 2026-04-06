@@ -1,3 +1,12 @@
+---
+title: Nova RL
+emoji: "🤖"
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
+
 # Nova RL
 
 Nova RL is an OpenEnv environment for ETL data remediation. The agent receives noisy tabular batches, takes structured remediation actions, and is scored with deterministic graders across `easy`, `medium`, and `hard` tasks.
