@@ -25,8 +25,11 @@ def build_client() -> OpenAI:
         os.getenv("HF_TOKEN")
         or os.getenv("API_KEY")
         or os.getenv("OPENAI_API_KEY")
-        or "DUMMY_KEY"
     )
+    if not api_key:
+        raise RuntimeError(
+            "Missing API credentials. Set HF_TOKEN or API_KEY before running inference.py."
+        )
     base_url = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
     return OpenAI(api_key=api_key, base_url=base_url)
 
@@ -54,6 +57,8 @@ def get_llm_action(client: OpenAI, obs: Observation) -> Action:
         max_output_tokens=120,
     )
     output_text = getattr(response, "output_text", "")
+    if not output_text:
+        raise RuntimeError("Model returned empty output_text; cannot parse action.")
     return parse_action(output_text)
 
 
