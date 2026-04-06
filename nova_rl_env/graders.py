@@ -25,67 +25,78 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
+
+if TYPE_CHECKING:
+    from .models import Action
+else:
+    Action = Any
 
 
-TASK_WEIGHTS = {
-    "easy": {
-        "fix_accuracy": 0.65,
-        "promotion_precision": 0.10,
-        "quarantine_precision": 0.25,
-    },
-    "medium": {
-        "fix_accuracy": 0.55,
-        "promotion_precision": 0.25,
-        "quarantine_precision": 0.20,
-    },
-    "hard": {
-        "fix_accuracy": 0.45,
-        "promotion_precision": 0.25,
-        "quarantine_precision": 0.30,
-    },
-}
-
-DECISION_BONUS = {
-    "fix": 0.04,
-    "quarantine": 0.03,
-    "promote": 0.03,
-    "finalize": 0.02,
-    "noop": -0.06,
-}
-
-
-def _clamp(value: float) -> float:
+def _clamp_score(value: float) -> float:
     return max(0.0, min(1.0, value))
 
 
-def grade(*, task_id: str, state: Mapping[str, Any], action: Any) -> float:
-    """Compute a deterministic final score from environment metrics."""
-
+def _metric(state: Mapping[str, Any], name: str) -> float:
     metrics = state.get("metrics", {})
     if not isinstance(metrics, Mapping):
-        metrics = {}
+        return 0.0
+    return _clamp_score(float(metrics.get(name, 0.0)))
 
-    weights = TASK_WEIGHTS.get(task_id, TASK_WEIGHTS["easy"])
-    score = sum(
-        float(metrics.get(metric_name, 0.0)) * float(weight)
-        for metric_name, weight in weights.items()
+
+def _action_value(action: Action, name: str, default: Any) -> Any:
+    if isinstance(action, Mapping):
+        return action.get(name, default)
+    return getattr(action, name, default)
+
+
+def _latency_penalty(state: Mapping[str, Any]) -> float:
+    step_index = max(0, int(state.get("step_index", 0)))
+    batch = state.get("batch", {})
+    max_steps = 8
+    if isinstance(batch, Mapping):
+        max_steps = int(batch.get("max_steps", max_steps))
+    return _clamp_score(step_index / max_steps)
+
+
+def _quarantine_penalty(action: Action, quarantine_precision: float) -> float:
+    decision = _action_value(action, "decision", "")
+    threshold = float(_action_value(action, "threshold", 0.5))
+    if decision == "quarantine":
+        return _clamp_score((1.0 - quarantine_precision) * max(threshold, 0.0))
+    return _clamp_score(1.0 - quarantine_precision)
+
+
+def _grade_easy(state: Mapping[str, Any]) -> float:
+    return _metric(state, "promotion_precision")
+
+
+def _grade_medium(state: Mapping[str, Any], action: Action) -> float:
+    promotion_rate = _metric(state, "promotion_precision")
+    quarantine_precision = _metric(state, "quarantine_precision")
+    quarantine_penalty = _quarantine_penalty(action, quarantine_precision)
+    return _clamp_score(0.75 * promotion_rate - 0.25 * quarantine_penalty)
+
+
+def _grade_hard(state: Mapping[str, Any], action: Action) -> float:
+    promotion_rate = _metric(state, "promotion_precision")
+    quarantine_precision = _metric(state, "quarantine_precision")
+    quarantine_penalty = _quarantine_penalty(action, quarantine_precision)
+    latency_penalty = _latency_penalty(state)
+    return _clamp_score(
+        0.70 * promotion_rate
+        - 0.20 * quarantine_penalty
+        - 0.10 * latency_penalty
     )
 
-    decision = getattr(action, "decision", None)
-    if isinstance(decision, str):
-        score += DECISION_BONUS.get(decision, 0.0)
 
-    step_index = int(state.get("step_index", 0))
-    if step_index > 1:
-        score -= min(0.08, (step_index - 1) * 0.01)
+def grade(task_id: str, state: dict, action: Action) -> float:
+    """Return a deterministic task score in the required 0.0 to 1.0 range."""
 
-    batch = state.get("batch", {})
-    if isinstance(batch, Mapping):
-        anomaly_counts = batch.get("anomaly_counts", {})
-        if isinstance(anomaly_counts, Mapping):
-            anomaly_total = sum(int(value) for value in anomaly_counts.values())
-            if anomaly_total == 0:
-                score -= 0.05
-
-    return _clamp(score)
+    if task_id == "easy":
+        return _grade_easy(state)
+    if task_id == "medium":
+        return _grade_medium(state, action)
+    if task_id == "hard":
+        return _grade_hard(state, action)
+    raise ValueError(f"Unknown task_id: {task_id}")
