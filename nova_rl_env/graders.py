@@ -34,7 +34,9 @@ else:
 
 
 def _clamp_score(value: float) -> float:
-    return max(0.0, min(1.0, value))
+    # Phase 2 validator requires scores to be strictly inside (0, 1).
+    epsilon = 1e-6
+    return max(epsilon, min(1.0 - epsilon, value))
 
 
 def _metric(state: Mapping[str, Any], name: str) -> float:

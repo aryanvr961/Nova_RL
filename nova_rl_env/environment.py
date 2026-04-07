@@ -233,4 +233,5 @@ class NovaRLEnv:
             + 0.2 * self.current_metrics.get("promotion_precision", 0.0)
             + 0.2 * self.current_metrics.get("quarantine_precision", 0.0)
         )
-        return max(0.0, min(1.0, score))
+        epsilon = 1e-6
+        return max(epsilon, min(1.0 - epsilon, score))
