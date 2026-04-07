@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOVA RL — ETL Remediation Benchmark</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --neon: #00ff88;
+    --neon2: #00ffcc;
+    --neon3: #39ff14;
+    --dim: #00aa55;
+    --bg: #050d0a;
+    --bg2: #0a1a12;
+    --bg3: #0d2018;
+    --card: #0c1f16;
+    --border: #1a3d28;
+    --border-neon: #00ff8844;
+    --text: #c8f5e0;
+    --muted: #4d8a6a;
+    --red: #ff4466;
+    --yellow: #ffcc00;
+    --blue: #00ccff;
+    --purple: #aa88ff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,255,136,0.015) 2px,
+      rgba(0,255,136,0.015) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Grid background */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+      linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ─── HERO ─── */
+  .hero {
+    text-align: center;
+    padding: 60px 0 40px;
+    position: relative;
+  }
+
+  .hero-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    height: 300px;
+    background: radial-gradient(ellipse, rgba(0,255,136,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .badge-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--bg2);
+    color: var(--dim);
+    letter-spacing: 0.5px;
+  }
+
+  .badge.green { border-color: var(--neon); color: var(--neon); background: rgba(0,255,136,0.05); }
+  .badge.yellow { border-color: var(--yellow); color: var(--yellow); background: rgba(255,204,0,0.05); }
+  .badge.blue { border-color: var(--blue); color: var(--blue); background: rgba(0,204,255,0.05); }
+  .badge.red { border-color: var(--red); color: var(--red); background: rgba(255,68,102,0.05); }
+
+  .hero-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(36px, 6vw, 68px);
+    font-weight: 900;
+    letter-spacing: 6px;
+    line-height: 1;
+    color: var(--neon);
+    text-shadow:
+      0 0 20px rgba(0,255,136,0.8),
+      0 0 60px rgba(0,255,136,0.3),
+      0 0 100px rgba(0,255,136,0.15);
+    animation: fadeDown 0.7s 0.1s ease both, flicker 8s 2s infinite;
+    margin-bottom: 8px;
+  }
+
+  .hero-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    animation: fadeDown 0.7s 0.2s ease both;
+    margin-bottom: 16px;
+  }
+
+  .hero-desc {
+    font-size: 15px;
+    color: #7ab898;
+    max-width: 580px;
+    margin: 0 auto;
+    line-height: 1.7;
+    animation: fadeDown 0.7s 0.3s ease both;
+  }
+
+  /* ─── DIVIDER ─── */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 36px 0;
+    opacity: 0;
+    animation: fadeIn 0.5s ease forwards;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-neon), var(--neon), var(--border-neon), transparent);
+  }
+  .divider-icon {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--neon);
+    letter-spacing: 2px;
+  }
+
+  /* ─── SECTION HEADER ─── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .section-header .icon {
+    font-size: 18px;
+    filter: drop-shadow(0 0 6px var(--neon));
+  }
+  .section-header h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--neon);
+    text-transform: uppercase;
+  }
+  .section-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border-neon), transparent);
+  }
+
+  /* ─── CARDS ─── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--neon);
+    box-shadow: 0 0 10px var(--neon);
+  }
+  .card:hover {
+    border-color: rgba(0,255,136,0.3);
+    box-shadow: 0 0 20px rgba(0,255,136,0.05);
+  }
+
+  /* ─── STAT GRID ─── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  @media(max-width:600px){ .stat-grid { grid-template-columns: repeat(2,1fr); } }
+
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 12px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.3s;
+    animation: fadeUp 0.6s ease both;
+  }
+  .stat-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(0,255,136,0.4);
+  }
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--neon);
+    box-shadow: 0 0 8px var(--neon);
+    transform: scaleX(0);
+    transition: transform 0.3s;
+  }
+  .stat-card:hover::after { transform: scaleX(1); }
+  .stat-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--neon);
+    text-shadow: 0 0 12px rgba(0,255,136,0.6);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .stat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ─── SCOREBOARD ─── */
+  .scoreboard {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+  .scoreboard-header {
+    background: linear-gradient(90deg, rgba(0,255,136,0.1), transparent);
+    padding: 12px 20px;
+    display: grid;
+    grid-template-columns: 120px 1fr 100px 80px;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .scoreboard-header span {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .score-row {
+    padding: 14px 20px;
+    display: grid;
+    grid-template-columns: 120px 1fr 100px 80px;
+    gap: 12px;
+    align-items: center;
+    border-bottom: 1px solid rgba(26,61,40,0.4);
+    transition: background 0.2s;
+  }
+  .score-row:last-child { border-bottom: none; }
+  .score-row:hover { background: rgba(0,255,136,0.03); }
+  .diff-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 3px;
+    display: inline-block;
+    letter-spacing: 1px;
+  }
+  .diff-easy { background: rgba(57,255,20,0.15); color: var(--neon3); border: 1px solid rgba(57,255,20,0.3); }
+  .diff-medium { background: rgba(255,204,0,0.15); color: var(--yellow); border: 1px solid rgba(255,204,0,0.3); }
+  .diff-hard { background: rgba(255,68,102,0.15); color: var(--red); border: 1px solid rgba(255,68,102,0.3); }
+
+  .bar-wrap {
+    background: var(--bg3);
+    border-radius: 3px;
+    height: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    position: relative;
+    transition: width 1.5s cubic-bezier(0.4,0,0.2,1);
+    width: 0;
+  }
+  .bar-fill::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: white;
+    opacity: 0.6;
+    filter: blur(1px);
+  }
+  .bar-easy { background: linear-gradient(90deg, #00aa44, var(--neon3)); box-shadow: 0 0 8px rgba(57,255,20,0.4); }
+  .bar-medium { background: linear-gradient(90deg, #aa7700, var(--yellow)); box-shadow: 0 0 8px rgba(255,204,0,0.4); }
+  .bar-hard { background: linear-gradient(90deg, #aa2244, var(--red)); box-shadow: 0 0 8px rgba(255,68,102,0.4); }
+
+  .score-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: right;
+  }
+  .score-rank {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  /* ─── TASK TABLE ─── */
+  .task-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 32px;
+  }
+  .task-table th {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    padding: 10px 14px;
+    text-align: left;
+    background: rgba(0,255,136,0.04);
+    border-bottom: 1px solid var(--border);
+  }
+  .task-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(26,61,40,0.4);
+    vertical-align: top;
+    color: var(--text);
+    font-size: 13px;
+  }
+  .task-table tr:last-child td { border-bottom: none; }
+  .task-table tr:hover td { background: rgba(0,255,136,0.02); }
+  .task-table .mono { font-family: 'Share Tech Mono', monospace; font-size: 12px; }
+  .tag {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 0.5px;
+    margin: 2px 2px 2px 0;
+  }
+  .tag-action { background: rgba(0,204,255,0.1); color: var(--blue); border: 1px solid rgba(0,204,255,0.2); }
+  .tag-issue { background: rgba(255,68,102,0.1); color: var(--red); border: 1px solid rgba(255,68,102,0.2); }
+  .tag-reward { background: rgba(170,136,255,0.1); color: var(--purple); border: 1px solid rgba(170,136,255,0.2); }
+
+  /* ─── REWARD SYSTEM ─── */
+  .reward-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+  @media(max-width:600px){ .reward-grid { grid-template-columns: repeat(2,1fr); } }
+
+  .reward-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 10px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+    transition: all 0.3s;
+  }
+  .reward-card:hover {
+    transform: translateY(-4px) scale(1.03);
+    border-color: rgba(0,255,136,0.4);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 20px rgba(0,255,136,0.08);
+  }
+  .reward-card .r-icon { font-size: 24px; margin-bottom: 8px; display: block; }
+  .reward-card .r-name {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--neon);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    display: block;
+  }
+  .reward-card .r-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .reward-card .r-desc { font-size: 10px; color: var(--muted); line-height: 1.4; }
+  .r-fix { color: var(--neon); }
+  .r-quarantine { color: var(--yellow); }
+  .r-promote { color: var(--blue); }
+  .r-noop { color: var(--muted); }
+  .r-finalize { color: var(--purple); }
+
+  /* ─── FLOW DIAGRAM ─── */
+  .flow-container {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 28px 20px;
+    margin-bottom: 32px;
+    overflow-x: auto;
+  }
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    min-width: 600px;
+    flex-wrap: nowrap;
+  }
+  .flow-node {
+    background: var(--bg3);
+    border: 1px solid var(--border-neon);
+    border-radius: 6px;
+    padding: 12px 16px;
+    text-align: center;
+    min-width: 90px;
+    position: relative;
+    transition: all 0.3s;
+    cursor: default;
+    animation: pulse-border 3s infinite;
+  }
+  .flow-node:hover {
+    border-color: var(--neon);
+    box-shadow: 0 0 16px rgba(0,255,136,0.2);
+    transform: scale(1.05);
+  }
+  .flow-node .fn-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+  .flow-node .fn-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--neon);
+    letter-spacing: 1px;
+    display: block;
+  }
+  .flow-node .fn-sub { font-size: 9px; color: var(--muted); margin-top: 2px; display: block; }
+  .flow-node.active-node {
+    border-color: var(--neon);
+    background: rgba(0,255,136,0.08);
+    box-shadow: 0 0 20px rgba(0,255,136,0.3);
+  }
+  .flow-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 0 4px;
+    flex-shrink: 0;
+  }
+  .flow-arrow .arrow-line {
+    width: 30px;
+    height: 1px;
+    background: linear-gradient(90deg, var(--dim), var(--neon));
+    position: relative;
+  }
+  .flow-arrow .arrow-line::after {
+    content: '▶';
+    position: absolute;
+    right: -6px;
+    top: -6px;
+    font-size: 10px;
+    color: var(--neon);
+  }
+  .flow-arrow .arrow-label {
+    font-size: 8px;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 0.5px;
+  }
+  .flow-loop {
+    text-align: center;
+    margin-top: 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+  .flow-loop span { color: var(--neon); }
+
+  /* ─── REAL WORLD PURPOSE ─── */
+  .purpose-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  @media(max-width:600px){ .purpose-grid { grid-template-columns: 1fr; } }
+
+  .purpose-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .purpose-card:hover {
+    border-color: rgba(0,255,136,0.25);
+    transform: translateY(-2px);
+  }
+  .purpose-card::before {
+    content: attr(data-num);
+    position: absolute;
+    top: -10px;
+    right: 12px;
+    font-family: 'Orbitron', monospace;
+    font-size: 48px;
+    font-weight: 900;
+    color: rgba(0,255,136,0.04);
+    line-height: 1;
+  }
+  .purpose-card .p-icon { font-size: 22px; margin-bottom: 10px; display: block; }
+  .purpose-card .p-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--neon);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .purpose-card p { font-size: 12px; color: #7ab898; line-height: 1.6; }
+
+  /* ─── OBSERVATION / ACTION GRID ─── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  @media(max-width:600px){ .two-col { grid-template-columns: 1fr; } }
+
+  .obs-list, .act-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .obs-list li, .act-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    padding: 7px 10px;
+    background: var(--bg3);
+    border-radius: 4px;
+    border: 1px solid transparent;
+    transition: border-color 0.2s;
+  }
+  .obs-list li:hover, .act-list li:hover { border-color: var(--border-neon); }
+  .obs-list li::before { content: '○'; color: var(--dim); font-size: 8px; }
+  .act-list li::before { content: '▸'; color: var(--neon); }
+
+  /* ─── REPO LAYOUT ─── */
+  .tree {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    line-height: 2;
+    color: #7ab898;
+    margin-bottom: 32px;
+  }
+  .tree .dir { color: var(--neon); }
+  .tree .file { color: #7ab898; }
+  .tree .key-file { color: var(--blue); }
+
+  /* ─── API ENDPOINTS ─── */
+  .endpoint-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+  .endpoint {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    transition: all 0.2s;
+  }
+  .endpoint:hover { border-color: rgba(0,255,136,0.25); background: rgba(0,255,136,0.02); }
+  .method {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    min-width: 44px;
+    text-align: center;
+  }
+  .get { background: rgba(0,204,255,0.15); color: var(--blue); border: 1px solid rgba(0,204,255,0.3); }
+  .post { background: rgba(57,255,20,0.15); color: var(--neon3); border: 1px solid rgba(57,255,20,0.3); }
+  .ep-path {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--text);
+    flex: 1;
+  }
+  .ep-desc { font-size: 12px; color: var(--muted); }
+
+  /* ─── FOOTER ─── */
+  .footer {
+    text-align: center;
+    padding: 32px 0 0;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
+  .footer .f-logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--neon);
+    text-shadow: 0 0 12px rgba(0,255,136,0.5);
+    margin-bottom: 12px;
+  }
+  .footer .f-team {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .f-member {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .f-member span { color: var(--neon); }
+  .footer .f-copy {
+    font-size: 11px;
+    color: var(--border);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes flicker {
+    0%, 95%, 100% { opacity: 1; }
+    96% { opacity: 0.85; }
+    97% { opacity: 1; }
+    98% { opacity: 0.9; }
+  }
+  @keyframes pulse-border {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,255,136,0); }
+    50% { box-shadow: 0 0 8px 1px rgba(0,255,136,0.1); }
+  }
+  @keyframes scanPulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+  @keyframes particleFloat {
+    0% { transform: translateY(0) translateX(0); opacity: 0; }
+    10% { opacity: 0.6; }
+    90% { opacity: 0.6; }
+    100% { transform: translateY(-120px) translateX(30px); opacity: 0; }
+  }
+
+  .stagger-1 { animation-delay: 0.05s; }
+  .stagger-2 { animation-delay: 0.1s; }
+  .stagger-3 { animation-delay: 0.15s; }
+  .stagger-4 { animation-delay: 0.2s; }
+
+  /* ─── LIVE COUNTER ─── */
+  .live-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--neon);
+    box-shadow: 0 0 6px var(--neon);
+    animation: scanPulse 1.5s infinite;
+    vertical-align: middle;
+    margin-right: 5px;
+  }
+
+  /* ─── INLINE CODE ─── */
+  code {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    background: rgba(0,255,136,0.08);
+    border: 1px solid rgba(0,255,136,0.15);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--neon);
+  }
+
+  /* ─── SECTION SPACING ─── */
+  section { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-glow"></div>
+    <div class="badge-row">
+      <span class="badge green">v1.0.0</span>
+      <span class="badge green">OpenEnv</span>
+      <span class="badge yellow">MIT License</span>
+      <span class="badge blue">Python 3.10+</span>
+      <span class="badge blue">FastAPI</span>
+      <span class="badge red">HuggingFace</span>
+    </div>
+    <div class="hero-title">𝙉𝙊𝙑𝘼 𝙍𝙇</div>
+    <div class="hero-sub">ETL REMEDIATION BENCHMARK · REINFORCEMENT LEARNING</div>
+    <p class="hero-desc">
+      A deterministic, score-driven benchmark where agents learn to repair noisy ETL pipelines
+      across easy, medium, and hard episodes — with real-world data quality stakes.
+    </p>
+  </div>
+
+  <!-- STATS -->
+  <div class="stat-grid">
+    <div class="stat-card stagger-1">
+      <span class="stat-num">3</span>
+      <span class="stat-label">Difficulty Tiers</span>
+    </div>
+    <div class="stat-card stagger-2">
+      <span class="stat-num">5</span>
+      <span class="stat-label">Action Types</span>
+    </div>
+    <div class="stat-card stagger-3">
+      <span class="stat-num">0→1</span>
+      <span class="stat-label">Score Range</span>
+    </div>
+    <div class="stat-card stagger-4">
+      <span class="stat-num">REST</span>
+      <span class="stat-label">API Interface</span>
+    </div>
+  </div>
+
+  <!-- DIVIDER -->
+  <div class="divider"><span class="divider-icon">◈ BASELINE SCOREBOARD ◈</span></div>
+
+  <!-- SCOREBOARD -->
+  <section>
+    <div class="scoreboard">
+      <div class="scoreboard-header">
+        <span>Difficulty</span>
+        <span>Progress</span>
+        <span style="text-align:right">Score</span>
+        <span style="text-align:right">Rank</span>
+      </div>
+      <div class="score-row">
+        <div><span class="diff-badge diff-easy">EASY</span></div>
+        <div>
+          <div class="bar-wrap"><div class="bar-fill bar-easy" data-width="80"></div></div>
+        </div>
+        <div class="score-val" style="color:var(--neon3)">0.8000</div>
+        <div class="score-rank">S TIER</div>
+      </div>
+      <div class="score-row">
+        <div><span class="diff-badge diff-medium">MEDIUM</span></div>
+        <div>
+          <div class="bar-wrap"><div class="bar-fill bar-medium" data-width="53.75"></div></div>
+        </div>
+        <div class="score-val" style="color:var(--yellow)">0.5375</div>
+        <div class="score-rank">B TIER</div>
+      </div>
+      <div class="score-row">
+        <div><span class="diff-badge diff-hard">HARD</span></div>
+        <div>
+          <div class="bar-wrap"><div class="bar-fill bar-hard" data-width="47.25"></div></div>
+        </div>
+        <div class="score-val" style="color:var(--red)">0.4725</div>
+        <div class="score-rank">C TIER</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DIVIDER -->
+  <div class="divider"><span class="divider-icon">◈ REWARD SYSTEM ◈</span></div>
+
+  <!-- REWARD SYSTEM -->
+  <section>
+    <div class="section-header">
+      <span class="icon">🎯</span>
+      <h2>Action Reward Map</h2>
+    </div>
+    <div class="reward-grid">
+      <div class="reward-card">
+        <span class="r-icon">🔧</span>
+        <span class="r-name">FIX</span>
+        <span class="r-val r-fix">+1.0</span>
+        <span class="r-desc">Correct repair of a valid anomaly</span>
+      </div>
+      <div class="reward-card">
+        <span class="r-icon">🔒</span>
+        <span class="r-name">QUARANTINE</span>
+        <span class="r-val r-quarantine">+0.5</span>
+        <span class="r-desc">Safe isolation of uncertain rows</span>
+      </div>
+      <div class="reward-card">
+        <span class="r-icon">🚀</span>
+        <span class="r-name">PROMOTE</span>
+        <span class="r-val r-promote">+0.8</span>
+        <span class="r-desc">Advancing clean records downstream</span>
+      </div>
+      <div class="reward-card">
+        <span class="r-icon">⏸️</span>
+        <span class="r-name">NOOP</span>
+        <span class="r-val r-noop">0.0</span>
+        <span class="r-desc">No-op on an anomaly wastes a step</span>
+      </div>
+      <div class="reward-card">
+        <span class="r-icon">✅</span>
+        <span class="r-name">FINALIZE</span>
+        <span class="r-val r-finalize">+BONUS</span>
+        <span class="r-desc">Episode completion bonus if above threshold</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- DIVIDER -->
+  <div class="divider"><span class="divider-icon">◈ TASK DEFINITIONS ◈</span></div>
+
+  <!-- TASK TABLE -->
+  <section>
+    <div class="section-header">
+      <span class="icon">🧩</span>
+      <h2>Episode Task Matrix</h2>
+    </div>
+    <table class="task-table">
+      <thead>
+        <tr>
+          <th>Level</th>
+          <th>Issues Handled</th>
+          <th>Actions</th>
+          <th>Reward Ceiling</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="diff-badge diff-easy">EASY</span></td>
+          <td>
+            <span class="tag tag-issue">null values</span>
+            <span class="tag tag-issue">exact dupes</span>
+          </td>
+          <td>
+            <span class="tag tag-action">fix</span>
+            <span class="tag tag-action">promote</span>
+          </td>
+          <td><span class="tag tag-reward">1.0</span></td>
+          <td class="mono" style="color:var(--muted)">Deterministic patterns, high signal</td>
+        </tr>
+        <tr>
+          <td><span class="diff-badge diff-medium">MEDIUM</span></td>
+          <td>
+            <span class="tag tag-issue">type mismatch</span>
+            <span class="tag tag-issue">bad dates</span>
+          </td>
+          <td>
+            <span class="tag tag-action">fix</span>
+            <span class="tag tag-action">quarantine</span>
+            <span class="tag tag-action">promote</span>
+          </td>
+          <td><span class="tag tag-reward">0.85</span></td>
+          <td class="mono" style="color:var(--muted)">Ambiguous fields, repair or isolate</td>
+        </tr>
+        <tr>
+          <td><span class="diff-badge diff-hard">HARD</span></td>
+          <td>
+            <span class="tag tag-issue">schema drift</span>
+            <span class="tag tag-issue">multi-col corr.</span>
+          </td>
+          <td>
+            <span class="tag tag-action">fix</span>
+            <span class="tag tag-action">quarantine</span>
+            <span class="tag tag-action">promote</span>
+            <span class="tag tag-action">finalize</span>
+          </td>
+          <td><span class="tag tag-reward">0.70</span></td>
+          <td class="mono" style="color:var(--muted)">Cross-column causality, structural repair</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- DIVIDER -->
+  <div class="divider"><span class="divider-icon">◈ EXECUTION FLOW ◈</span></div>
+
+  <!-- FLOW DIAGRAM -->
+  <section>
+    <div class="section-header">
+      <span class="icon">⚡</span>
+      <h2>Episode Execution Flow</h2>
+    </div>
+    <div class="flow-container">
+      <div class="flow-diagram">
+        <div class="flow-node active-node">
+          <span class="fn-icon">🔄</span>
+          <span class="fn-label">reset()</span>
+          <span class="fn-sub">new episode</span>
+        </div>
+        <div class="flow-arrow">
+          <div class="arrow-line"></div>
+          <span class="arrow-label">session_id</span>
+        </div>
+        <div class="flow-node">
+          <span class="fn-icon">👁️</span>
+          <span class="fn-label">state()</span>
+          <span class="fn-sub">observe</span>
+        </div>
+        <div class="flow-arrow">
+          <div class="arrow-line"></div>
+          <span class="arrow-label">obs</span>
+        </div>
+        <div class="flow-node">
+          <span class="fn-icon">🧠</span>
+          <span class="fn-label">agent</span>
+          <span class="fn-sub">decide</span>
+        </div>
+        <div class="flow-arrow">
+          <div class="arrow-line"></div>
+          <span class="arrow-label">action</span>
+        </div>
+        <div class="flow-node">
+          <span class="fn-icon">⚡</span>
+          <span class="fn-label">step()</span>
+          <span class="fn-sub">execute</span>
+        </div>
+        <div class="flow-arrow">
+          <div class="arrow-line"></div>
+          <span class="arrow-label">reward</span>
+        </div>
+        <div class="flow-node">
+          <span class="fn-icon">📊</span>
+          <span class="fn-label">grade()</span>
+          <span class="fn-sub">score</span>
+        </div>
+        <div class="flow-arrow">
+          <div class="arrow-line"></div>
+          <span class="arrow-label">done?</span>
+        </div>
+        <div class="flow-node">
+          <span class="fn-icon">🏁</span>
+          <span class="fn-label">end</span>
+          <span class="fn-sub">episode done</span>
+        </div>
+      </div>
+      <div class="flow-loop">↺ if <span>more steps remaining</span> → loop back to <span>state()</span></div>
+    </div>
+  </section>
+
+  <!-- DIVIDER -->
+  <div class="divider"><span class="divider-icon">◈ REAL-WORLD PURPOSE ◈</span></div>
+
+  <!-- PURPOSE -->
+  <section>
+    <div class="section-header">
+      <span class="icon">🌍</span>
+      <h2>Why This Benchmark Exists</h2>
+    </div>
+    <div class="purpose-grid">
+      <div class="purpose-card" data-num="01">
+        <span class="p-icon">🏦</span>
+        <span class="p-title">DATA PIPELINES</span>
+        <p>Financial and enterprise ETL pipelines lose millions to silent data corruption. Nova RL trains agents that detect and repair these faults before they propagate to production.</p>
+      </div>
+      <div class="purpose-card" data-num="02">
+        <span class="p-icon">🤖</span>
+        <span class="p-title">RL RESEARCH</span>
+        <p>Provides a clean, deterministic environment with discrete action spaces — ideal for testing new RL algorithms like PPO, SAC, or GRPO on structured, non-game tasks.</p>
+      </div>
+      <div class="purpose-card" data-num="03">
+        <span class="p-icon">🏥</span>
+        <span class="p-title">HEALTHCARE DATA</span>
+        <p>Malformed records in clinical datasets directly impact patient safety. Nova RL's schema drift and type mismatch tasks mirror real hospital data quality challenges.</p>
+      </div>
+      <div class="purpose-card" data-num="04">
+        <span class="p-icon">📦</span>
+        <span class="p-title">SUPPLY CHAIN</span>
+        <p>Duplicate and null-heavy inventory data leads to stock mismanagement. Easy-tier tasks replicate exactly these high-frequency, high-cost warehouse data failures.</p>
+      </div>
+      <div class="purpose-card" data-num="05">
+        <span class="p-icon">📡</span>
+        <span class="p-title">ML DATA QUALITY</span>
+        <p>Poor training data quality degrades model performance. Agents trained on Nova RL serve as automated data gatekeepers before features enter the ML training pipeline.</p>
+      </div>
+      <div class="purpose-card" data-num="06">
+        <span class="p-icon">🏆</span>
+        <span class="p-title">LLM EVAL</span>
+        <p>Evaluates instruction-following LLMs on structured decision-making tasks, bridging the gap between text generation benchmarks and tool-use / agentic capabilities.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- DIVIDER -->
+  <div class="divider"><span class="divider-icon">◈ OBSERVATION & ACTION SPACE ◈</span></div>
+
+  <!-- OBS + ACTION -->
+  <section>
+    <div class="two-col">
+      <div class="card">
+        <div class="section-header" style="margin-bottom:14px">
+          <span class="icon">🧾</span>
+          <h2>Observation Space</h2>
+        </div>
+        <ul class="obs-list">
+          <li><code>task_id</code></li>
+          <li><code>step_index</code></li>
+          <li><code>max_steps</code></li>
+          <li><code>batch_size</code></li>
+          <li><code>anomaly_counts</code></li>
+          <li><code>current_metrics</code></li>
+          <li><code>sample_issue_summaries</code></li>
+          <li><code>current_threshold</code></li>
+          <li><code>remaining_steps</code></li>
+          <li><code>last_action</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="section-header" style="margin-bottom:14px">
+          <span class="icon">🎯</span>
+          <h2>Action Space</h2>
+        </div>
+        <ul class="act-list">
+          <li><code>fix</code> — repair the anomaly directly</li>
+          <li><code>quarantine</code> — isolate for review</li>
+          <li><code>promote</code> — advance clean records</li>
+          <li><code>noop</code> — skip (costs reward)</li>
+          <li><code>finalize</code> — commit & end episode</li>
+        </ul>
+        <div style="margin-top:14px;padding:10px;background:var(--bg3);border-radius:4px;border:1px solid var(--border)">
+          <p style="font-size:11px;color:var(--muted);font-family:'Share Tech Mono',monospace">
+            Each action accepts: <code>threshold</code> · <code>notes</code> · <code>params{}</code>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DIVIDER -->
+  <div class="divider"><span class="divider-icon">◈ API ENDPOINTS ◈</span></div>
+
+  <!-- RUNTIME API -->
+  <section>
+    <div class="section-header">
+      <span class="icon">🌐</span>
+      <h2>Runtime API</h2>
+    </div>
+    <div class="endpoint-list">
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="ep-path">/ping</span>
+        <span class="ep-desc">Health check — confirm service is alive</span>
+      </div>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="ep-path">/health</span>
+        <span class="ep-desc">Detailed service status and config</span>
+      </div>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="ep-path">/reset</span>
+        <span class="ep-desc">Create or reset a session → returns <code>session_id</code></span>
+      </div>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="ep-path">/state</span>
+        <span class="ep-desc">Read current observation (requires <code>session_id</code>)</span>
+      </div>
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <span class="ep-path">/step</span>
+        <span class="ep-desc">Apply a remediation action → returns reward + next state</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- DIVIDER -->
+  <div class="divider"><span class="divider-icon">◈ REPO STRUCTURE ◈</span></div>
+
+  <!-- REPO LAYOUT -->
+  <section>
+    <div class="section-header">
+      <span class="icon">📁</span>
+      <h2>Repository Layout</h2>
+    </div>
+    <div class="tree">
+<span class="dir">NOVA_RL/</span>
+├── <span class="key-file">app.py</span>              <span style="color:var(--muted)">→ FastAPI entrypoint</span>
+├── <span class="key-file">inference.py</span>        <span style="color:var(--muted)">→ baseline agent script</span>
+├── <span class="file">Dockerfile</span>
+├── <span class="file">openenv.yaml</span>           <span style="color:var(--muted)">→ OpenEnv manifest</span>
+├── <span class="file">requirements.txt</span>
+└── <span class="dir">nova_rl_env/</span>
+    ├── <span class="key-file">environment.py</span>  <span style="color:var(--muted)">→ reset / step / state logic</span>
+    ├── <span class="key-file">tasks.py</span>        <span style="color:var(--muted)">→ easy / medium / hard configs</span>
+    ├── <span class="key-file">graders.py</span>      <span style="color:var(--muted)">→ deterministic scoring</span>
+    ├── <span class="file">datagen.py</span>          <span style="color:var(--muted)">→ synthetic ETL batch generator</span>
+    ├── <span class="file">models.py</span>
+    └── <span class="file">rewards.py</span>          <span style="color:var(--muted)">→ reward computation</span>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="f-logo">𝙉𝙊𝙑𝘼 𝙍𝙇</div>
+    <div class="f-team">
+      <span class="f-member"><span>Aryan</span> — environment · models · rewards · inference · deployment</span>
+      <span class="f-member"><span>Aadyaa</span> — tasks · datagen · grading · documentation</span>
+    </div>
+    <div class="f-copy"><span class="live-dot"></span>NOVA RL · MIT LICENSE · OPENENV COMPATIBLE · HUGGINGFACE SPACES READY</div>
+  </div>
+
+</div>
+
+<script>
+  // Animate bars on load
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      document.querySelectorAll('.bar-fill[data-width]').forEach(bar => {
+        bar.style.width = bar.dataset.width + '%';
+      });
+    }, 400);
+  });
+
+  // Animate stat numbers
+  function animateCount(el, target, isFloat, duration) {
+    const start = performance.now();
+    const update = (now) => {
+      const t = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - t, 3);
+      const val = isFloat ? (ease * target).toFixed(4) : Math.floor(ease * target);
+      el.textContent = val;
+      if (t < 1) requestAnimationFrame(update);
+    };
+    requestAnimationFrame(update);
+  }
+
+  // Stagger section fade-in
+  const sections = document.querySelectorAll('section, .stat-grid, .hero');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('section').forEach(s => {
+    s.style.opacity = '0';
+    s.style.transform = 'translateY(20px)';
+    s.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    observer.observe(s);
+  });
+
+  // Flow node cycle highlight
+  const nodes = document.querySelectorAll('.flow-node');
+  let current = 0;
+  setInterval(() => {
+    nodes.forEach(n => n.classList.remove('active-node'));
+    nodes[current].classList.add('active-node');
+    current = (current + 1) % nodes.length;
+  }, 900);
+</script>
+</body>
+</html>
