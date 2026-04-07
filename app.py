@@ -8,6 +8,7 @@ from pathlib import Path
 from threading import Lock
 from uuid import uuid4
 
+from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
 
@@ -18,6 +19,12 @@ app = FastAPI(title="Nova RL")
 _SESSION_LOCK = Lock()
 _SESSIONS: dict[str, NovaRLEnv] = {}
 ROOT_HTML = Path(__file__).with_name("nova_ui.html").read_text(encoding="utf-8")
+
+
+class ResetRequest(BaseModel):
+    task_id: TaskId = "easy"
+    seed: int | None = Field(default=None, ge=0)
+    session_id: str | None = None
 
 
 def _get_session_env(session_id: str) -> NovaRLEnv:
@@ -37,11 +44,10 @@ def health() -> dict[str, str]:
     return {"status": "healthy"}
 
 
-@app.get("/reset")
-def reset(
-    task_id: TaskId = Query(default="easy"),
-    seed: int | None = Query(default=None, ge=0),
-    session_id: str | None = Query(default=None),
+def _reset_session(
+    task_id: TaskId = "easy",
+    seed: int | None = None,
+    session_id: str | None = None,
 ) -> dict[str, object]:
     resolved_session_id = session_id or str(uuid4())
     with _SESSION_LOCK:
@@ -58,6 +64,25 @@ def reset(
         "seed": env.seed,
         "observation": observation.model_dump(),
     }
+
+
+@app.get("/reset")
+def reset(
+    task_id: TaskId = Query(default="easy"),
+    seed: int | None = Query(default=None, ge=0),
+    session_id: str | None = Query(default=None),
+) -> dict[str, object]:
+    return _reset_session(task_id=task_id, seed=seed, session_id=session_id)
+
+
+@app.post("/reset")
+def reset_post(payload: ResetRequest | None = None) -> dict[str, object]:
+    request = payload or ResetRequest()
+    return _reset_session(
+        task_id=request.task_id,
+        seed=request.seed,
+        session_id=request.session_id,
+    )
 
 
 @app.get("/state")
