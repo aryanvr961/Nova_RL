@@ -23,6 +23,7 @@ This repo currently packages:
 - a `NovaRLEnv` environment with typed observation/action models
 - a FastAPI runtime with session-based `reset -> state -> step` flow
 - a baseline LLM inference loop using the OpenAI Python client
+- an OpenEnv-compatible `server/` entrypoint plus packaging metadata for validation
 - Hugging Face Space deployment files and a custom HTML landing UI
 
 ## Preview
@@ -63,7 +64,7 @@ flowchart LR
 ## Current Workflow
 
 ```text
-1. Client calls /reset with a task_id and optional seed
+1. Client calls `/reset` with a task id and optional seed
 2. FastAPI creates or reuses a session-scoped NovaRLEnv
 3. The environment generates a noisy ETL batch for that task
 4. The agent reads the observation payload
@@ -172,14 +173,23 @@ and reads the model from `MODEL_NAME`.
 | `GET` | `/` | HTML landing page |
 | `GET` | `/ping` | Liveness check |
 | `GET` | `/health` | Health status |
-| `GET` | `/reset` | Start or reset a session and task |
+| `GET` | `/reset` | Start or reset a session and task with query params |
+| `POST` | `/reset` | Validator-friendly reset with JSON body |
 | `GET` | `/state` | Fetch current session observation |
 | `POST` | `/step` | Submit an action for the session |
 
-Example reset call:
+Example `GET /reset` call:
 
 ```bash
 curl "http://127.0.0.1:7860/reset?task_id=medium&seed=42"
+```
+
+Example `POST /reset` call:
+
+```bash
+curl -X POST "http://127.0.0.1:7860/reset" \
+  -H "Content-Type: application/json" \
+  -d "{\"task_id\":\"medium\",\"seed\":42}"
 ```
 
 Example step call:
@@ -194,6 +204,8 @@ curl -X POST "http://127.0.0.1:7860/step?session_id=YOUR_SESSION_ID" \
 
 ```text
 NOVA_RL/
+|-- pyproject.toml
+|-- uv.lock
 |-- app.py
 |-- inference.py
 |-- nova_ui.html
@@ -201,6 +213,9 @@ NOVA_RL/
 |-- preload_models.py
 |-- requirements.txt
 |-- _app_preview.png
+|-- server/
+|   |-- __init__.py
+|   `-- app.py
 `-- nova_rl_env/
     |-- datagen.py
     |-- environment.py
@@ -219,6 +234,7 @@ NOVA_RL/
 - **Core runtime:** FastAPI, Pydantic
 - **Environment logic:** custom OpenEnv-style RL loop
 - **Inference:** OpenAI Python client with HF router compatibility
+- **Validation compatibility:** OpenEnv packaging metadata plus `server.app:main`
 - **Data tooling:** NumPy, pandas, scikit-learn
 - **Deployment target:** Hugging Face Space via `Dockerfile` + `openenv.yaml`
 
@@ -229,6 +245,8 @@ This project is already structured for Hugging Face Space deployment:
 - [`Dockerfile`](./Dockerfile)
 - [`openenv.yaml`](./openenv.yaml)
 - [`app.py`](./app.py)
+- [`server/app.py`](./server/app.py)
+- [`pyproject.toml`](./pyproject.toml)
 
 Space runtime metadata currently declares:
 
@@ -240,6 +258,12 @@ runtime: fastapi
 app: app:app
 port: 7860
 ```
+
+OpenEnv validation compatibility is also included via:
+
+- `server.app:main` entrypoint in [`pyproject.toml`](./pyproject.toml)
+- lightweight compatibility package in [`server/app.py`](./server/app.py)
+- lockfile placeholder in [`uv.lock`](./uv.lock)
 
 ## Baseline Score Snapshot
 
