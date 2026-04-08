@@ -25,6 +25,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING, Any, Mapping
 
 if TYPE_CHECKING:
@@ -33,17 +34,24 @@ else:
     Action = Any
 
 
+SCORE_EPSILON = 1e-6
+
+
 def _clamp_score(value: float) -> float:
     # Phase 2 validator requires scores to be strictly inside (0, 1).
-    epsilon = 1e-6
-    return max(epsilon, min(1.0 - epsilon, value))
+    if not math.isfinite(value):
+        value = 0.0
+    return max(SCORE_EPSILON, min(1.0 - SCORE_EPSILON, value))
 
 
 def _metric(state: Mapping[str, Any], name: str) -> float:
     metrics = state.get("metrics", {})
     if not isinstance(metrics, Mapping):
-        return 0.0
-    return _clamp_score(float(metrics.get(name, 0.0)))
+        return _clamp_score(0.0)
+    try:
+        return _clamp_score(float(metrics.get(name, 0.0)))
+    except (TypeError, ValueError):
+        return _clamp_score(0.0)
 
 
 def _action_value(action: Action, name: str, default: Any) -> Any:
@@ -53,17 +61,28 @@ def _action_value(action: Action, name: str, default: Any) -> Any:
 
 
 def _latency_penalty(state: Mapping[str, Any]) -> float:
-    step_index = max(0, int(state.get("step_index", 0)))
+    try:
+        step_index = max(0, int(state.get("step_index", 0)))
+    except (TypeError, ValueError):
+        step_index = 0
     batch = state.get("batch", {})
     max_steps = 8
     if isinstance(batch, Mapping):
-        max_steps = int(batch.get("max_steps", max_steps))
+        try:
+            max_steps = int(batch.get("max_steps", max_steps))
+        except (TypeError, ValueError):
+            max_steps = 8
+    if max_steps <= 0:
+        max_steps = 8
     return _clamp_score(step_index / max_steps)
 
 
 def _quarantine_penalty(action: Action, quarantine_precision: float) -> float:
     decision = _action_value(action, "decision", "")
-    threshold = float(_action_value(action, "threshold", 0.5))
+    try:
+        threshold = float(_action_value(action, "threshold", 0.5))
+    except (TypeError, ValueError):
+        threshold = 0.5
     if decision == "quarantine":
         return _clamp_score((1.0 - quarantine_precision) * max(threshold, 0.0))
     return _clamp_score(1.0 - quarantine_precision)
@@ -95,10 +114,13 @@ def _grade_hard(state: Mapping[str, Any], action: Action) -> float:
 def grade(task_id: str, state: dict, action: Action) -> float:
     """Return a deterministic task score in the required 0.0 to 1.0 range."""
 
+    if not isinstance(state, Mapping):
+        state = {}
+
     if task_id == "easy":
-        return _grade_easy(state)
+        return _clamp_score(_grade_easy(state))
     if task_id == "medium":
-        return _grade_medium(state, action)
+        return _clamp_score(_grade_medium(state, action))
     if task_id == "hard":
-        return _grade_hard(state, action)
+        return _clamp_score(_grade_hard(state, action))
     raise ValueError(f"Unknown task_id: {task_id}")

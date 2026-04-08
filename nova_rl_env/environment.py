@@ -83,7 +83,11 @@ class NovaRLEnv:
                 step_penalty=0.0,
                 metadata={"reason": "episode_already_complete"},
             )
-            return self.state(), reward, True, {"metrics": self.current_metrics}
+            return self.state(), reward, True, {
+                "task_objective": self.task_config.get("objective", ""),
+                "metrics": dict(self.current_metrics),
+                "grade": self._clamp_open_score(self._grade(action)),
+            }
 
         self.step_index += 1
         self.current_threshold = action.threshold
@@ -113,7 +117,7 @@ class NovaRLEnv:
         info = {
             "task_objective": self.task_config.get("objective", ""),
             "metrics": dict(self.current_metrics),
-            "grade": self._grade(action),
+            "grade": self._clamp_open_score(self._grade(action)),
         }
         return self.state(), reward, done, info
 
@@ -204,6 +208,10 @@ class NovaRLEnv:
             "quarantine_precision": min(1.0, 0.05 + 0.10 * progress),
         }
 
+    def _clamp_open_score(self, value: float) -> float:
+        epsilon = 1e-6
+        return max(epsilon, min(1.0 - epsilon, float(value)))
+
     def _grade(self, action: Action) -> float:
         try:
             graders_module = importlib.import_module("nova_rl_env.graders")
@@ -218,7 +226,7 @@ class NovaRLEnv:
                     "metrics": self.current_metrics,
                     "step_index": self.step_index,
                 }
-                return float(
+                return self._clamp_open_score(
                     typed_grade_fn(
                         task_id=self.task_id,
                         state=grading_state,
@@ -233,5 +241,4 @@ class NovaRLEnv:
             + 0.2 * self.current_metrics.get("promotion_precision", 0.0)
             + 0.2 * self.current_metrics.get("quarantine_precision", 0.0)
         )
-        epsilon = 1e-6
-        return max(epsilon, min(1.0 - epsilon, score))
+        return self._clamp_open_score(score)
