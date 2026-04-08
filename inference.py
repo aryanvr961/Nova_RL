@@ -15,6 +15,7 @@ SEED = 42
 BENCHMARK = os.getenv("NOVA_RL_BENCHMARK", "nova_rl")
 MAX_STEPS = 8
 SUCCESS_SCORE_THRESHOLD = 0.1
+SCORE_EPSILON = 1e-6
 
 
 def get_api_base_url() -> str:
@@ -48,6 +49,10 @@ def log_end(success: bool, steps: int, score: float, rewards: list[float]) -> No
         f"[END] success={str(success).lower()} steps={steps} score={score:.6f} rewards={rewards_str}",
         flush=True,
     )
+
+
+def clamp_open_score(value: float) -> float:
+    return max(SCORE_EPSILON, min(1.0 - SCORE_EPSILON, value))
 
 
 def build_client() -> OpenAI:
@@ -146,13 +151,13 @@ def run_task(client: OpenAI, task_id: str) -> None:
                 error=error,
             )
 
-        score = float(final_info.get("grade", 0.0))
-        score = min(max(score, 0.0), 1.0)
+        score = clamp_open_score(float(final_info.get("grade", 0.0)))
         success = score >= SUCCESS_SCORE_THRESHOLD
     finally:
         try:
             close_env(env)
         finally:
+            score = clamp_open_score(score)
             log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
 
 
