@@ -207,6 +207,7 @@ NOVA_RL/
 |-- pyproject.toml
 |-- uv.lock
 |-- app.py
+|-- Dockerfile
 |-- inference.py
 |-- nova_ui.html
 |-- openenv.yaml
@@ -235,7 +236,7 @@ NOVA_RL/
 - **Environment logic:** custom OpenEnv-style RL loop
 - **Inference:** OpenAI Python client with HF router compatibility
 - **Validation compatibility:** OpenEnv packaging metadata plus `server.app:main`
-- **Data tooling:** NumPy, pandas, scikit-learn
+- **Data tooling:** NumPy, pandas
 - **Deployment target:** Hugging Face Space via `Dockerfile` + `openenv.yaml`
 
 ## Deployment
@@ -264,6 +265,8 @@ OpenEnv validation compatibility is also included via:
 - `server.app:main` entrypoint in [`pyproject.toml`](./pyproject.toml)
 - lightweight compatibility package in [`server/app.py`](./server/app.py)
 - lockfile placeholder in [`uv.lock`](./uv.lock)
+
+The runtime dependency set is intentionally lean so the Docker image builds faster and avoids pulling unnecessary ML packages during validator runs.
 
 ## Baseline Score Snapshot
 

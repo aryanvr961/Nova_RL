@@ -10,14 +10,11 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.116.0,<1.0.0",
-    "chromadb>=1.0.0,<2.0.0",
     "numpy>=2.0.0,<3.0.0",
-    "openai>=1.40.0,<3.0.0",
+    "openai>=1.40.0,<2.0.0",
     "openenv-core>=0.2.0",
     "pandas>=2.2.0,<3.0.0",
     "pydantic>=2.8.0,<3.0.0",
-    "scikit-learn>=1.5.0,<2.0.0",
-    "sentence-transformers>=3.0.0,<4.0.0",
     "uvicorn>=0.35.0,<1.0.0",
 ]
 
