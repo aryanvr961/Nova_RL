@@ -77,7 +77,18 @@ class NovaRLEnv:
             last_action=self.last_action,
         )
 
-    def step(self, action: Action) -> tuple[Observation, Reward, bool, Dict[str, Any]]:
+    def _resolve_action(self, action: Action | None) -> Action:
+        if action is not None:
+            return action
+        return Action(
+            decision="noop",
+            threshold=self.current_threshold,
+            notes="implicit_noop",
+            parameters={},
+        )
+
+    def step(self, action: Action | None = None) -> tuple[Observation, Reward, bool, Dict[str, Any]]:
+        resolved_action = self._resolve_action(action)
         if self.done:
             reward = build_reward(
                 step_penalty=0.0,
@@ -86,30 +97,34 @@ class NovaRLEnv:
             return self.state(), reward, True, {
                 "task_objective": self.task_config.get("objective", ""),
                 "metrics": dict(self.current_metrics),
-                "grade": self._clamp_open_score(self._grade(action)),
+                "grade": self._clamp_open_score(self._grade(resolved_action)),
             }
 
         self.step_index += 1
-        self.current_threshold = action.threshold
-        self.last_action = action.decision
+        self.current_threshold = resolved_action.threshold
+        self.last_action = resolved_action.decision
 
         progress = min(1.0, self.step_index / int(self.task_config.get("max_steps", 8)))
-        self.current_metrics = self._estimate_metrics(action, progress)
+        self.current_metrics = self._estimate_metrics(resolved_action, progress)
 
         reward = build_reward(
             correct_fix_gain=self.current_metrics["fix_accuracy"] * 0.2,
             unsafe_promotion_penalty=(
-                0.08 if action.decision == "promote" and action.threshold < 0.45 else 0.0
+                0.08
+                if resolved_action.decision == "promote" and resolved_action.threshold < 0.45
+                else 0.0
             ),
             over_quarantine_penalty=(
-                0.08 if action.decision == "quarantine" and action.threshold > 0.75 else 0.0
+                0.08
+                if resolved_action.decision == "quarantine" and resolved_action.threshold > 0.75
+                else 0.0
             ),
             step_penalty=0.01,
             metadata={"task_id": self.task_id, "step_index": self.step_index},
         )
 
         done = (
-            action.decision == "finalize"
+            resolved_action.decision == "finalize"
             or self.step_index >= int(self.task_config.get("max_steps", 8))
         )
         self.done = done
@@ -117,7 +132,7 @@ class NovaRLEnv:
         info = {
             "task_objective": self.task_config.get("objective", ""),
             "metrics": dict(self.current_metrics),
-            "grade": self._clamp_open_score(self._grade(action)),
+            "grade": self._clamp_open_score(self._grade(resolved_action)),
         }
         return self.state(), reward, done, info
 
