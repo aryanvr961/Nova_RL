@@ -209,8 +209,9 @@ class NovaRLEnv:
         }
 
     def _clamp_open_score(self, value: float) -> float:
-        epsilon = 1e-6
-        return max(epsilon, min(1.0 - epsilon, float(value)))
+        min_score = 0.01
+        max_score = 0.99
+        return max(min_score, min(max_score, float(value)))
 
     def _grade(self, action: Action) -> float:
         try:

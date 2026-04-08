@@ -34,14 +34,15 @@ else:
     Action = Any
 
 
-SCORE_EPSILON = 1e-6
+MIN_SCORE = 0.01
+MAX_SCORE = 0.99
 
 
 def _clamp_score(value: float) -> float:
     # Phase 2 validator requires scores to be strictly inside (0, 1).
     if not math.isfinite(value):
         value = 0.0
-    return max(SCORE_EPSILON, min(1.0 - SCORE_EPSILON, value))
+    return max(MIN_SCORE, min(MAX_SCORE, value))
 
 
 def _metric(state: Mapping[str, Any], name: str) -> float:
