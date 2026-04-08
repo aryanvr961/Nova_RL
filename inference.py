@@ -73,8 +73,19 @@ def observation_to_prompt(obs: Observation) -> str:
     )
 
 
+def strip_code_fences(text: str) -> str:
+    cleaned = text.strip()
+    if cleaned.startswith("```json"):
+        cleaned = cleaned[len("```json"):].strip()
+    elif cleaned.startswith("```"):
+        cleaned = cleaned[len("```"):].strip()
+    if cleaned.endswith("```"):
+        cleaned = cleaned[:-3].strip()
+    return cleaned
+
+
 def parse_action(text: str) -> Action:
-    payload = json.loads(text)
+    payload = json.loads(strip_code_fences(text))
     return Action(**payload)
 
 
@@ -96,13 +107,15 @@ def fallback_action(obs: Observation, error: Optional[str] = None) -> Action:
 
 
 def get_llm_action(client: OpenAI, obs: Observation) -> Action:
-    response = client.responses.create(
+    response = client.chat.completions.create(
         model=get_model_name(),
-        input=observation_to_prompt(obs),
+        messages=[
+            {"role": "user", "content": observation_to_prompt(obs)},
+        ],
         temperature=0,
-        max_output_tokens=120,
+        max_tokens=120,
     )
-    output_text = getattr(response, "output_text", "")
+    output_text = (response.choices[0].message.content or "").strip()
     if not output_text:
         raise RuntimeError("Model returned empty output_text; cannot parse action.")
     return parse_action(output_text)
