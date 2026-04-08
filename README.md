@@ -278,6 +278,14 @@ Representative integration checks recorded these valid benchmark outputs:
 | `medium` | `0.5375` |
 | `hard` | `0.4725` |
 
+## Future Implementation
+
+- Replace approximate reward attribution with stronger counterfactual credit assignment for more stable multi-agent learning.
+- Add confidence calibration on model-generated remediation outputs so threshold decisions stay reliable under noisy cases.
+- Expand the synthetic generator with richer real-world anomaly patterns, correlated faults, and domain-randomized episode settings.
+- Introduce safer memory and retrieval write-back rules so only high-quality remediations are reused in later episodes.
+- Evolve the current linear episode flow into a graph-style remediation loop with retry, backtracking, and re-evaluation steps.
+
 ## Project Context
 
 Nova RL was built as an **OpenEnv-based ETL remediation benchmark** for the **Meta / PyTorch x Hugging Face x Scaler SST Hackathon**.
