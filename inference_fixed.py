@@ -1,22 +1,14 @@
 from __future__ import annotations
 
 import json
-import logging
 import os
 import re
-import urllib.error
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from typing import Any, Optional
 
 from nova_rl_env.config import load_env_file
 
 load_env_file()
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
 
 from google import genai
 from google.genai import types
@@ -67,7 +59,7 @@ def get_api_key() -> str | None:
 
 
 def _single_line(value: Any) -> str:
-    return str(value).replace("\r", " ").replace("\n", " ").strip()
+    return str(value).replace("\\r", " ").replace("\\n", " ").strip()
 
 
 def log_start(task: str, env: str, model: str, session_id: str) -> None:
@@ -88,7 +80,7 @@ def log_step(step: int, action: str, reward: float, done: bool, error: Optional[
 
 
 def log_end(success: bool, steps: int, score: float, rewards: list[float]) -> None:
-    rewards_str = ",".join(f"{reward:.2f}" for reward in rewards)
+    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
     print(
         f"[END] success={str(success).lower()} steps={steps} "
         f"score={score:.6f} rewards={rewards_str}",
@@ -113,8 +105,8 @@ def observation_to_prompt(obs: Observation) -> str:
     observation_json = obs.model_dump_json(exclude_none=True)
     return (
         "Return only JSON for an ETL remediation action. "
-        "Schema: {\"decision\":\"fix|quarantine|promote|noop|finalize\","
-        "\"threshold\":0.5,\"notes\":\"short reason\"}. "
+        "Schema: {\\\"decision\\\":\\\"fix|quarantine|promote|noop|finalize\\\","
+        "\\\"threshold\\\":0.5,\\\"notes\\\":\\\"short reason\\\"}. "
         f"Observation: {observation_json}"
     )
 
@@ -125,7 +117,7 @@ def strip_code_fences(text: str) -> str:
     if cleaned.startswith("```json"):
         cleaned = cleaned[len("```json") :].strip()
     elif cleaned.startswith("```"):
-        cleaned = cleaned[len("```") :].strip()
+        cleaned = cleaned[len("```") :] .strip()
     if cleaned.endswith("```"):
         cleaned = cleaned[:-3].strip()
     if not cleaned.startswith("{"):
@@ -231,12 +223,12 @@ def close_env(env: NovaRLEnv) -> None:
 def run_task(client: Any, task_id: str) -> None:
     env = NovaRLEnv(task_id=task_id)
     session_id = generate_session_id(task_id)
-    rewards: list[float] = []
+    rewards = []
     steps_taken = 0
     score = 0.0
     success = False
-    final_error: str | None = None
-    llm_disabled_error: str | None = None
+    final_error: Optional[str] = None
+    llm_disabled_error: Optional[str] = None
 
     log_start(
         task=task_id,
@@ -244,11 +236,9 @@ def run_task(client: Any, task_id: str) -> None:
         model=f"gemini:{get_model_name()}",
         session_id=session_id,
     )
-    logger.info(f"Starting task: {task_id} (session: {session_id})")
 
     try:
         obs = env.reset(seed=SEED)
-        logger.debug(f"Environment reset successful")
         record_session_start_async(
             session_id=session_id,
             task_id=task_id,
@@ -263,18 +253,14 @@ def run_task(client: Any, task_id: str) -> None:
 
             if llm_disabled_error:
                 error = llm_disabled_error
-                logger.warning(f"Using fallback action due to previous error: {error}")
                 action = fallback_action(obs, error=error)
             else:
                 try:
                     action = get_llm_action(client, obs)
-                    logger.debug(f"LLM action received: {action.decision}")
                 except Exception as exc:
                     error = truncate_text(_single_line(exc), 240)
-                    logger.error(f"LLM call failed: {error}")
                     if is_fatal_gemini_error(error):
                         llm_disabled_error = error
-                        logger.warning(f"Fatal error detected, switching to fallback")
                     action = fallback_action(obs, error=error)
 
             obs, reward, done, info = env.step(action)
@@ -306,10 +292,9 @@ def run_task(client: Any, task_id: str) -> None:
 
         score = clamp_open_score(float(final_info.get("grade") or 0.0))
         success = score >= SUCCESS_SCORE_THRESHOLD
-        logger.info(f"Task completed: {task_id} success={success} score={score:.4f} steps={steps_taken}")
     except Exception as exc:
         final_error = truncate_text(_single_line(exc), 240)
-        logger.exception(f"Task failed with error: {final_error}")
+        raise
     finally:
         try:
             close_env(env)
@@ -326,7 +311,6 @@ def run_task(client: Any, task_id: str) -> None:
             )
             shutdown_memory_writer()
             log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
-            logger.info(f"Cleaned up session: {session_id}")
 
 
 def main() -> None:
