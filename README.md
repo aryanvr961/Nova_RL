@@ -19,6 +19,11 @@
 **Nova RL** is an OpenEnv-style reinforcement learning environment for **ETL data quality remediation**.  
 It simulates noisy tabular data batches, exposes typed observations to an agent, accepts structured remediation actions, and returns deterministic rewards plus end-of-episode grading across three benchmark levels: `easy`, `medium`, and `hard`.
 
+## Live App
+
+**Frontend:** [https://nova-rl.web.app](https://nova-rl.web.app)  
+**Backend:** [https://nova-rl-backend-460592928457.asia-south1.run.app](https://nova-rl-backend-460592928457.asia-south1.run.app)
+
 ## UI Preview
 
 <div align="center">
@@ -456,7 +461,6 @@ The project combines **Gemini 2.5 Flash**, **FastAPI**, **Google Cloud Run**, an
 ## Links
 
 - GitHub: [aryanvr961/Nova_RL](https://github.com/aryanvr961/Nova_RL)
-- Live App: [nova-rl.web.app](https://nova-rl.web.app)
 - Event reference: [Hack2skill Build with AI](https://hack2skill.com/event/build-with-ai)
 
 
