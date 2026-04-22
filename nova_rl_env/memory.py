@@ -99,14 +99,18 @@ def _to_mapping(value: Any) -> dict[str, Any]:
 
 
 def _extract_anomalies(observation: Any) -> dict[str, int]:
-    """Extract only anomaly counts from observation, filtering unwanted types."""
+    """Extract anomaly counts from observation for demo and audit logs."""
     data = _to_mapping(observation)
     anomaly_counts = data.get("anomaly_counts", {})
     if not isinstance(anomaly_counts, dict):
         return {}
-    # Include only safe, demo-friendly anomaly types
-    safe_types = {"null", "duplicate"}
-    return {k: v for k, v in anomaly_counts.items() if k in safe_types}
+    clean_counts: dict[str, int] = {}
+    for key, value in anomaly_counts.items():
+        try:
+            clean_counts[str(key)] = int(value)
+        except (TypeError, ValueError):
+            continue
+    return clean_counts
 
 
 def _extract_summary(observation: Any) -> str:
@@ -143,6 +147,8 @@ def _write_session_start(
     task_id: str,
     seed: int | None,
     observation: Any,
+    llm_provider: str | None = None,
+    llm_model: str | None = None,
 ) -> None:
     client = _get_client()
     if client is None:
@@ -155,6 +161,8 @@ def _write_session_start(
             "started_at": now,
             "steps": 0,
             "latest_decision": None,
+            "llm_provider": llm_provider,
+            "llm_model": llm_model,
         }
     )
 
@@ -274,6 +282,8 @@ def record_session_start_async(
     task_id: str,
     seed: int | None,
     observation: Any,
+    llm_provider: str | None = None,
+    llm_model: str | None = None,
 ) -> Future[Any] | None:
     return _schedule(
         _write_session_start,
@@ -281,6 +291,8 @@ def record_session_start_async(
         task_id=task_id,
         seed=seed,
         observation=observation,
+        llm_provider=llm_provider,
+        llm_model=llm_model,
     )
 
 

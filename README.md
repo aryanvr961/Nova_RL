@@ -1,7 +1,7 @@
 
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&height=220&color=0:0F172A,50:1D4ED8,100:22D3EE&text=Nova%20RL&fontAlignY=38&desc=OpenEnv%20benchmark%20for%20ETL%20data%20remediation&descAlignY=58&fontColor=ffffff" alt="Nova RL banner" />
+<img src="https://capsule-render.vercel.app/api?type=waving&height=220&color=0:0F172A,50:1D4ED8,100:22D3EE&text=Nova%20RL&fontAlignY=38&desc=AI-powered%20ETL%20data%20remediation&descAlignY=58&fontColor=ffffff" alt="Nova RL banner" />
 
 [![Python](https://img.shields.io/badge/Python-3.11+-0f172a?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Service-0891B2?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -19,13 +19,20 @@
 **Nova RL** is an OpenEnv-style reinforcement learning environment for **ETL data quality remediation**.  
 It simulates noisy tabular data batches, exposes typed observations to an agent, accepts structured remediation actions, and returns deterministic rewards plus end-of-episode grading across three benchmark levels: `easy`, `medium`, and `hard`.
 
+## UI Preview
+
+<div align="center">
+  <img src="ui/_app_preview.png" alt="Nova RL control panel preview" width="100%" />
+</div>
+
 This repo currently packages:
 
 - a `NovaRLEnv` environment with typed observation/action models
-- a FastAPI runtime with session-based `reset → state → step` flow
-- **Google Gemini 2.5 Flash** LLM for intelligent ETL decisions
-- **Firebase Firestore** async logging for session metadata & observability
+- a FastAPI runtime with session-based `reset -> state -> step` flow
+- backend-driven `agent/step` execution using **Google Gemini 2.5 Flash** or a local Gemma-compatible endpoint
+- **Firebase Firestore** async logging for session metadata and observability
 - thread-safe session management with automatic TTL cleanup
+- an interactive UI bundled under `ui/` for local use and Firebase Hosting deploys
 - OpenEnv-compatible `server/` entrypoint for validator compatibility
 - production-ready Docker image for **Google Cloud Run** deployment
 
@@ -36,7 +43,7 @@ This repo currently packages:
 │                     Google Cloud Run (Auto-scaling)             │
 │                                                                 │
 │  ┌────────────────┐                                            │
-│  │   FastAPI      │ ← HTTP Requests from LLM Agents           │
+│  │   FastAPI      │ ← HTTP Requests from UI or LLM Agents      │
 │  │   REST API     │                                            │
 │  └────────┬───────┘                                            │
 │           │                                                    │
@@ -46,21 +53,21 @@ This repo currently packages:
 │           │                                                    │
 │  ┌────────▼──────────────────────────────────────────────────┐ │
 │  │  NovaRLEnv (per session)                                 │ │
-│  │  ├─ Batch Generator (Synthetic anomalies)               │ │
-│  │  ├─ Graders (Deterministic scoring)                     │ │
-│  │  └─ Reward Builder (Dense signals)                      │ │
+│  │  ├─ Batch Generator (Synthetic anomalies)                │ │
+│  │  ├─ Graders (Deterministic scoring)                      │ │
+│  │  └─ Reward Builder (Dense signals)                       │ │
 │  └────────┬──────────────────────────────────────────────────┘ │
 │           │                                                    │
 │  ┌────────▼──────────────────────────────────────────────────┐ │
-│  │  Google Gemini 2.5 Flash (LLM Inference)               │ │
+│  │  Gemini / Local Gemma Inference Layer                    │ │
 │  │  └─ Structured JSON decision-making                      │ │
 │  └────────┬──────────────────────────────────────────────────┘ │
 │           │                                                    │
 │  ┌────────▼──────────────────────────────────────────────────┐ │
 │  │  Firebase Firestore (Async Logging)                      │ │
-│  │  ├─ Session metadata                                      │ │
-│  │  ├─ Step trajectories                                     │ │
-│  │  └─ Episode summaries                                     │ │
+│  │  ├─ Session metadata                                     │ │
+│  │  ├─ Step trajectories                                    │ │
+│  │  └─ Episode summaries                                    │ │
 │  └───────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -95,7 +102,7 @@ flowchart LR
 ## Current Workflow (Session-Based on Cloud Run)
 
 ```
-[LLM Agent] ──(HTTP)──> [Cloud Run - FastAPI]
+[UI / LLM Agent] --(HTTP)--> [Cloud Run - FastAPI]
                                |
                     [Session Manager + Lock]
                                |
@@ -104,23 +111,23 @@ flowchart LR
                           ├─ Graders
                           └─ Reward Builder
                                |
-                        [Gemini 2.5 Flash]
+                    [Gemini 2.5 Flash / Local Gemma]
                     (structured JSON decisions)
                                |
                         [Firestore - Async]
                     (session metadata logging)
                                |
-                    <-(Observation + Reward)──
+                    <-(Observation + Reward)--
 ```
 
 **Per-Episode Sequence:**
-1. Client: `POST /reset?task_id=easy` → Server creates unique `session_id`
+1. Client: `POST /reset?task_id=easy` -> Server creates unique `session_id`
 2. Environment: Generates synthetic ETL batch (deterministic from seed)
 3. Loop (up to 8 steps):
-   - Client: Reads `/state?session_id=...` → Gets observation + metrics
-   - Gemini: Calls API with observation → Returns structured action JSON
-   - Client: `POST /step` with action decision
-   - Environment: Executes action → computes reward + grade
+   - Client: Reads `/state?session_id=...` -> Gets observation + metrics
+   - Agent: Uses Gemini or local Gemma to produce structured action JSON
+   - Client: `POST /step` with manual action, or `POST /agent/step` for backend-generated action
+   - Environment: Executes action -> computes reward + grade
    - Firestore: Async logs step trajectory
 4. Terminal condition: `decision == "finalize"` OR `step_index >= max_steps`
 5. Firestore: Logs episode summary (final score, trajectory, success flag)
@@ -183,19 +190,22 @@ pip install -r requirements.txt
 
 Edit the local `.env` file before running inference:
 
-
-
-
+- `LLM_PROVIDER` = `gemini` or `local_gemma4`
 - `GEMINI_API_KEY` when `LLM_PROVIDER=gemini`
 - `GEMINI_MODEL` (optional, defaults to `gemini-2.5-flash`)
+- `LOCAL_GEMMA4_API_URL` when `LLM_PROVIDER=local_gemma4`
+- `LOCAL_GEMMA4_MODEL` (optional, defaults to `gemma-4`)
+- `LOCAL_GEMMA4_API_KEY` only if your local server requires auth
 
 Optional Firebase memory settings:
 
 - `GOOGLE_APPLICATION_CREDENTIALS` for local service account auth
+- `GOOGLE_CLOUD_PROJECT` (optional, used when Firebase logging is enabled)
 - `NOVA_RL_FIRESTORE_COLLECTION` (optional, defaults to `nova_rl_sessions`)
 - `NOVA_RL_MAX_PENDING_WRITES` (optional, defaults to `100`)
 - `NOVA_RL_TASKS` (optional, defaults to `easy,medium,hard`)
 - `NOVA_RL_MAX_STEPS` (optional, defaults to `8`)
+- `NOVA_RL_CORS_ORIGINS` (optional, comma-separated allowed origins)
 
 ### 3. Run the API locally
 
@@ -205,7 +215,7 @@ uvicorn app:app --host 0.0.0.0 --port 8080 --reload
 
 Open `http://127.0.0.1:8080` to view the bundled UI.
 
-For development on different port:
+For development on a different port:
 ```bash
 uvicorn app:app --host 0.0.0.0 --port 7860 --reload
 ```
@@ -216,11 +226,17 @@ uvicorn app:app --host 0.0.0.0 --port 7860 --reload
 python inference.py
 ```
 
-Runs 3 tasks (easy, medium, hard) using **Google Gemini 2.5 Flash** with:
-- ✅ 15-second timeout per API call
-- ✅ Automatic retry on failure
-- ✅ Safe fallback action if LLM response is invalid
-- ✅ Async logging to Firestore (if configured)
+Runs configured tasks using the selected LLM backend with:
+- timeout-protected API calls
+- automatic retry on failure
+- safe fallback action if the LLM response is invalid
+- async logging to Firestore (if configured)
+
+For UI/backend-driven agent execution, the API supports:
+
+- `GET /providers` to list selectable LLM backends
+- `POST /reset` with `llm_provider`, optional `llm_model`, and optional Firebase logging fields
+- `POST /agent/step?session_id=...` to let the backend generate and apply the next action
 
 ## API Surface
 
@@ -228,15 +244,17 @@ All endpoints return JSON responses. Sessions are isolated and managed server-si
 
 | Method | Route | Purpose | Auth |
 |--------|-------|---------|------|
-| `GET` | `/ping` | Liveness check (for Cloud Run load balancer) | ❌ |
-| `GET` | `/health` | Memory status + Firestore connection | ❌ |
+| `GET` | `/ping` | Liveness check | ❌ |
+| `GET` | `/health` | Memory status + pending writes | ❌ |
+| `GET` | `/providers` | List supported LLM providers | ❌ |
 | `GET` | `/reset` | Start session with query params | ❌ |
 | `POST` | `/reset` | Start session with JSON body | ❌ |
 | `GET` | `/state` | Fetch current observation | ❌ |
 | `POST` | `/step` | Submit action, get reward + next state | ❌ |
+| `POST` | `/agent/step` | Backend-generated action step | ❌ |
 | `GET` | `/` | Web UI (HTML) | ❌ |
 
-> **Note:** When deploying to Cloud Run, add API key authentication to `/reset` and `/step` endpoints.
+> **Note:** When deploying to Cloud Run, add authentication or API gateway protection around mutation endpoints.
 
 ### Example Requests (Local Development)
 
@@ -260,7 +278,13 @@ curl -X POST "http://127.0.0.1:8080/step?session_id=YOUR_SESSION_ID" \
   -d '{"decision":"fix","threshold":0.6,"notes":"repair obvious issues","parameters":{}}'
 ```
 
-#### 4. On Google Cloud Run
+#### 4. Backend Agent Step
+
+```bash
+curl -X POST "http://127.0.0.1:8080/agent/step?session_id=YOUR_SESSION_ID"
+```
+
+#### 5. On Google Cloud Run
 
 ```bash
 # Replace [SERVICE-URL] with your Cloud Run service URL
@@ -277,18 +301,26 @@ NOVA_RL/
 |-- app.py
 |-- Dockerfile
 |-- inference.py
-|-- nova_ui.html
 |-- openenv.yaml
 |-- preload_models.py
 |-- requirements.txt
-|-- _app_preview.png
+|-- firebase.json
+|-- DEPLOYMENT.md
+|-- ui/
+|   |-- nova_ui.html
+|   |-- _app_preview.png
+|   `-- public/
+|       `-- index.html
 |-- server/
 |   |-- __init__.py
 |   `-- app.py
 `-- nova_rl_env/
+    |-- config.py
     |-- datagen.py
     |-- environment.py
     |-- graders.py
+    |-- llm.py
+    |-- memory.py
     |-- models.py
     |-- rewards.py
     `-- tasks.py
@@ -307,15 +339,15 @@ NOVA_RL/
 - **Containerization:** Docker
 
 ### Google Cloud Services
-- **LLM Inference:** [Google Gemini 2.5 Flash API](https://ai.google.dev) — structured JSON decisions with 15s timeout
-- **Session Logging:** [Firebase Admin SDK](https://firebase.google.com) → Firestore (async, best-effort)
-- **Deployment:** [Google Cloud Run](https://cloud.google.com/run) — managed, auto-scaling serverless
-- **Authentication:** [Google Cloud IAM](https://cloud.google.com/iam) (service account credentials)
+- **LLM Inference:** [Google Gemini 2.5 Flash API](https://ai.google.dev) for structured remediation decisions
+- **Session Logging:** [Firebase Admin SDK](https://firebase.google.com) -> Firestore (async, best-effort)
+- **Deployment:** [Google Cloud Run](https://cloud.google.com/run) for the backend
+- **Frontend Hosting:** [Firebase Hosting](https://firebase.google.com/docs/hosting) for the static UI
 
 ### Environment & Validation
 - **OpenEnv compatibility:** `server.app:main` entrypoint + `openenv.yaml` metadata
 - **RL Loop:** Custom session-based trajectory collection with deterministic grading
-- **Error Handling:** Structured logging, graceful fallbacks on LLM failures
+- **Error Handling:** Structured logging, request timeouts, and graceful fallbacks on LLM failures
 - **Memory Safety:** Thread-safe session manager with 1-hour TTL and automatic cleanup
 
 ## Deployment on Google Cloud Run
@@ -350,31 +382,16 @@ NOVA_RL/
 ### Deploy to Cloud Run
 
 ```bash
-gcloud run deploy nova-rl \
+gcloud run deploy nova-rl-backend \
   --source . \
   --platform managed \
-  --region us-central1 \
-  --memory 2Gi \
-  --timeout 3600 \
+  --region asia-south1 \
+  --timeout 300 \
   --allow-unauthenticated \
-  --set-env-vars \
-    GEMINI_API_KEY=your-api-key,\
-    GEMINI_MODEL=gemini-2.5-flash,\
-    GOOGLE_CLOUD_PROJECT=nova-rl-prod,\
-    NOVA_RL_FIRESTORE_COLLECTION=nova_rl_sessions,\
-    NOVA_RL_MAX_PENDING_WRITES=100,\
-    NOVA_RL_TASKS=easy,medium,hard
+  --set-env-vars NOVA_RL_CORS_ORIGINS=https://nova-rl.web.app,https://nova-rl.firebaseapp.com
 ```
 
-### Key Configuration
-
-| Variable | Value | Purpose |
-|----------|-------|----------|
-| `GEMINI_API_KEY` | Your API key | LLM inference |
-| `GOOGLE_CLOUD_PROJECT` | `nova-rl-prod` | Firestore location |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Service account JSON | Firebase auth |
-| `PORT` | `8080` | Cloud Run requirement |
-| `NOVA_RL_MAX_PENDING_WRITES` | `100` | Firestore batch size |
+For the full backend plus Firebase Hosting workflow, see [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
 ### Health Checks
 
@@ -382,7 +399,7 @@ gcloud run deploy nova-rl \
 # Check if service is alive
 curl https://nova-rl-[HASH].a.run.app/ping
 
-# Check Firestore connection
+# Check runtime health
 curl https://nova-rl-[HASH].a.run.app/health
 ```
 
@@ -392,14 +409,10 @@ curl https://nova-rl-[HASH].a.run.app/health
 
 - ✅ Use **Cloud IAM Service Accounts** (not personal keys)
 - ✅ Store `GEMINI_API_KEY` in **Secret Manager**, not `.env`
-- ✅ Enable **VPC Service Controls** for Firestore isolation
-- ✅ Set up **Cloud Monitoring** alerts for:
-  - `/health` endpoint pending_writes > 50
-  - Gemini API error rate > 5%
-  - Cloud Run latency p95 > 2s
-- ✅ Use **Cloud CDN** for static assets (nova_ui.html)
+- ✅ Use Firebase Hosting for the static UI and Cloud Run for the API
 - ✅ Enable **Cloud Logging** with structured JSON output
-- ✅ Set **Firestore backup** to daily
+- ✅ Protect mutation endpoints before public production use
+- ✅ Keep Firestore logging optional so local development stays lightweight
 
 ### Scaling Considerations
 
@@ -407,27 +420,9 @@ curl https://nova-rl-[HASH].a.run.app/health
 |-----------|-------|----------------|
 | Cloud Run concurrency | 1000 | Default: 80 (adjust if needed) |
 | Firestore write rate | 10k writes/sec | Monitor with `/health` |
-| Gemini API rate | 1000 req/min | Queue requests if exceeding |
+| Gemini API rate | provider-dependent | Add queueing if load grows |
 | Session TTL | 3600 seconds | Suitable for 1-hour training runs |
-| Max batch size | 1000 records | Prevents OOM on 2Gi instances |
-
-### Example Monitoring Dashboard (Cloud Monitoring)
-
-```yaml
-# Create dashboard with:
-- Cloud Run requests (rate, latency, errors)
-- Firestore write latency + volume
-- Gemini API calls (success rate, p95 latency)
-- Memory usage per Cloud Run instance
-```
-
-### Cost Estimation (Monthly)
-
-- **Cloud Run:** ~$50 (2 Gi, 100 instances avg)
-- **Firestore:** ~$20 (1M writes/month)
-- **Gemini API:** ~$100 (assuming 10k calls/month)
-- **Cloud Logging:** ~$5
-- **Total:** ~$175/month for moderate load
+| Max steps | 8 | Keeps episodes bounded and UI-friendly |
 
 ## Baseline Score Snapshot
 
@@ -449,9 +444,9 @@ Representative integration checks recorded these valid benchmark outputs:
 
 ## Project Context
 
-Nova RL was built as an **OpenEnv-based ETL remediation benchmark** for the **Meta / PyTorch x Hugging Face x Scaler SST Hackathon**.
+Nova RL is being aligned as a submission-ready ETL remediation benchmark for the **Hack2skill Build with AI** challenge flow.
 
-Deployed on **Google Cloud Run** with **Gemini 2.5 Flash** for intelligent ETL decision-making and **Firebase Firestore** for scalable session logging.
+The project combines **Gemini 2.5 Flash**, **FastAPI**, **Google Cloud Run**, and **Firebase** to demonstrate a practical AI system for guided data remediation rather than a one-shot demo.
 
 ## Contributors
 
@@ -461,6 +456,8 @@ Deployed on **Google Cloud Run** with **Gemini 2.5 Flash** for intelligent ETL d
 ## Links
 
 - GitHub: [aryanvr961/Nova_RL](https://github.com/aryanvr961/Nova_RL)
+- Live App: [nova-rl.web.app](https://nova-rl.web.app)
+- Event reference: [Hack2skill Build with AI](https://hack2skill.com/event/build-with-ai)
 
 
 <div align="center">

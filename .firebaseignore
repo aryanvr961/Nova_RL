@@ -1,0 +1,13 @@
+.git
+.gitignore
+.env
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+node_modules
+nova_rl_env
+server
+README.md
+uv.lock
+TODO.md

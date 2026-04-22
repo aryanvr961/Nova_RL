@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field
 
 TaskId = Literal["easy", "medium", "hard"]
 DecisionType = Literal["fix", "quarantine", "promote", "noop", "finalize"]
+LLMProviderType = Literal["gemini", "local_gemma4"]
 
 
 class Observation(BaseModel):
@@ -77,6 +78,26 @@ class Action(BaseModel):
     parameters: Dict[str, Any] = Field(
         default_factory=dict,
         description="Optional structured parameters for future extensibility.",
+    )
+
+
+class LLMConfig(BaseModel):
+    """Session-level LLM selection for backend-driven agent steps."""
+
+    provider: LLMProviderType = Field(
+        default="gemini",
+        description="Which inference backend to use for agent decisions.",
+    )
+    model: str = Field(
+        description="Concrete model name for the selected provider.",
+    )
+    api_key: Optional[str] = Field(
+        default=None,
+        description="Optional session-scoped API key override. Never persist this.",
+    )
+    api_url: Optional[str] = Field(
+        default=None,
+        description="Optional session-scoped API URL override for local servers.",
     )
 
 

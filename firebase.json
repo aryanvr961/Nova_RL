@@ -1,0 +1,22 @@
+{
+  "hosting": {
+    "target": "app",
+    "public": "ui/public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "**/*.py",
+      "**/__pycache__/**",
+      ".env",
+      "README.md",
+      "uv.lock"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

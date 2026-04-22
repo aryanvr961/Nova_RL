@@ -1,0 +1,13 @@
+{
+  "projects": {},
+  "targets": {
+    "nova-rl-1337c": {
+      "hosting": {
+        "app": [
+          "nova-rl"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
