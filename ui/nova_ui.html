@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="nova-api-base" content="">
+<meta name="nova-api-base" content="https://nova-rl-backend-460592928457.asia-south1.run.app">
 <title>NOVA RL — Interactive Control Panel</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -673,6 +673,394 @@
     margin-top: 6px;
   }
 
+  .intro-shell {
+    position: relative;
+    z-index: 1;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 28px 20px 140px;
+  }
+
+  .intro-hero {
+    position: relative;
+    min-height: calc(100vh - 56px);
+    display: flex;
+    align-items: center;
+    padding: 42px 32px 96px;
+    overflow: hidden;
+    margin-bottom: 18px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background:
+      radial-gradient(circle at top right, rgba(0,255,136,0.16), transparent 32%),
+      radial-gradient(circle at bottom left, rgba(0,204,255,0.12), transparent 30%),
+      linear-gradient(135deg, rgba(0,255,136,0.07), rgba(0,0,0,0) 42%),
+      var(--card);
+    box-shadow: var(--shadow);
+  }
+
+  .intro-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(0,255,136,0.05), transparent);
+    transform: translateX(-100%);
+    animation: sweep 8s linear infinite;
+  }
+
+  .intro-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.75fr);
+    gap: 18px;
+    width: 100%;
+    align-items: end;
+  }
+
+  .intro-copy {
+    max-width: 760px;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 7px 12px;
+    border: 1px solid rgba(0,255,136,0.22);
+    border-radius: 999px;
+    background: rgba(0,255,136,0.06);
+    font-family: "Share Tech Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: var(--neon);
+  }
+
+  .intro-title {
+    font-family: "Orbitron", monospace;
+    font-size: clamp(42px, 7vw, 88px);
+    line-height: 0.94;
+    letter-spacing: 6px;
+    color: var(--neon);
+    text-shadow: 0 0 24px rgba(0,255,136,0.38);
+    margin-bottom: 18px;
+  }
+
+  .intro-lead {
+    max-width: 760px;
+    font-size: 17px;
+    line-height: 1.8;
+    color: #a4e8c1;
+    margin-bottom: 20px;
+  }
+
+  .intro-note {
+    max-width: 760px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--muted);
+  }
+
+  .intro-panel,
+  .story-card,
+  .team-card,
+  .roadmap-card {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background:
+      linear-gradient(180deg, rgba(10,26,18,0.96), rgba(5,13,10,0.98)),
+      var(--card);
+    box-shadow: var(--shadow);
+  }
+
+  .intro-panel {
+    padding: 22px;
+  }
+
+  .intro-panel::after,
+  .story-card::after,
+  .team-card::after,
+  .roadmap-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent, rgba(0,255,136,0.045), transparent);
+    transform: translateX(-120%);
+    animation: panelShimmer 8s linear infinite;
+    pointer-events: none;
+  }
+
+  .intro-panel .panel-title {
+    margin-bottom: 16px;
+  }
+
+  .signal-list,
+  .team-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .signal-item,
+  .team-line {
+    padding: 12px 14px;
+    border: 1px solid rgba(26,61,40,0.72);
+    border-radius: 12px;
+    background: rgba(0,255,136,0.03);
+  }
+
+  .signal-item strong,
+  .team-line strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  .signal-item span,
+  .team-line span {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .metric-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .metric-card {
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: rgba(12,31,22,0.86);
+    box-shadow: var(--shadow);
+  }
+
+  .metric-value {
+    display: block;
+    margin-bottom: 8px;
+    font-family: "Orbitron", monospace;
+    font-size: 24px;
+    color: var(--neon);
+    letter-spacing: 1px;
+  }
+
+  .metric-label {
+    display: block;
+    margin-bottom: 6px;
+    font-family: "Share Tech Mono", monospace;
+    font-size: 11px;
+    color: #8ad4b4;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+  }
+
+  .metric-copy {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .story-grid,
+  .roadmap-grid,
+  .team-grid {
+    display: grid;
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+
+  .story-grid {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  }
+
+  .roadmap-grid,
+  .team-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .story-card,
+  .team-card,
+  .roadmap-card {
+    padding: 24px;
+  }
+
+  .story-card p,
+  .roadmap-card p,
+  .team-card p {
+    color: #93d8b7;
+    line-height: 1.75;
+    font-size: 14px;
+  }
+
+  .story-card p + p,
+  .roadmap-card p + p,
+  .team-card p + p {
+    margin-top: 14px;
+  }
+
+  .story-list,
+  .roadmap-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .story-list-item,
+  .roadmap-step {
+    padding: 14px 16px;
+    border-left: 2px solid rgba(0,255,136,0.38);
+    border-radius: 10px;
+    background: rgba(0,255,136,0.035);
+  }
+
+  .story-list-item strong,
+  .roadmap-step strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  .story-list-item span,
+  .roadmap-step span {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .phase-timeline {
+    display: grid;
+    gap: 14px;
+    margin-top: 18px;
+  }
+
+  .phase-step {
+    display: grid;
+    grid-template-columns: 92px 1fr;
+    gap: 14px;
+    align-items: start;
+    padding: 14px 16px;
+    border: 1px solid rgba(26,61,40,0.72);
+    border-radius: 12px;
+    background: rgba(0,255,136,0.03);
+  }
+
+  .phase-index {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    border-radius: 10px;
+    border: 1px solid rgba(0,255,136,0.28);
+    font-family: "Orbitron", monospace;
+    font-size: 12px;
+    color: var(--neon);
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    background: rgba(0,255,136,0.05);
+  }
+
+  .phase-copy strong {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text);
+    font-size: 15px;
+  }
+
+  .phase-copy span {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.65;
+  }
+
+  .cta-dock {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    z-index: 20;
+    transform: translateX(-50%);
+    transition: opacity 180ms ease, transform 180ms ease;
+  }
+
+  .cta-btn {
+    min-width: 220px;
+    padding: 14px 26px;
+    border-radius: 999px;
+    border: 1px solid rgba(0,255,136,0.42);
+    background: linear-gradient(135deg, rgba(0,255,136,0.16), rgba(0,204,255,0.12));
+    box-shadow: 0 0 24px rgba(0,255,136,0.14);
+    color: var(--text);
+    font-family: "Orbitron", monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  body.app-focused .cta-dock {
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 18px);
+  }
+
+  .app-anchor {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-family: "Share Tech Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 1.8px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 1040px) {
+    .intro-grid,
+    .story-grid,
+    .roadmap-grid,
+    .team-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .metric-strip {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 720px) {
+    .intro-shell {
+      padding-bottom: 120px;
+    }
+
+    .intro-hero,
+    .story-card,
+    .team-card,
+    .roadmap-card,
+    .intro-panel {
+      padding: 20px;
+    }
+
+    .phase-step {
+      grid-template-columns: 1fr;
+    }
+
+    .metric-strip {
+      grid-template-columns: 1fr;
+    }
+
+    .cta-btn {
+      min-width: 188px;
+      width: calc(100vw - 48px);
+    }
+  }
+
   .hidden { display: none !important; }
 
   @keyframes fadeUp {
@@ -727,7 +1115,254 @@
   <div class="light-orb two"></div>
   <div class="light-orb three"></div>
 </div>
-<div class="shell">
+<div class="intro-shell">
+  <section class="intro-hero">
+    <div class="intro-grid">
+      <div class="intro-copy">
+        <div class="eyebrow">Step 0 · Future Vision Entry Screen</div>
+        <div class="badge-row" style="margin-bottom: 16px;">
+          <span class="badge green">Nova RL v3 Vision</span>
+          <span class="badge blue">6-Agent MARL</span>
+          <span class="badge yellow">OpenEnv Wrapper</span>
+          <span class="badge purple">Air-Gapped ETL</span>
+        </div>
+        <h1 class="intro-title">NOVA RL</h1>
+        <p class="intro-lead">
+          A production-ready multi-agent reinforcement learning platform for intelligent ETL remediation, real-time observability, and safe controlled promotion.
+        </p>
+        <p class="intro-lead">
+          Current phase: Core prototype. Future vision: Six specialized agents, autonomous anomaly detection, safety-first constraints, robust SLM resilience, and reward-optimized workflows across the entire remediation pipeline.
+        </p>
+        <p class="intro-note">
+          Scroll to see how the prototype maps to the full system vision. The fixed button below opens the current
+          working control panel and keeps the same cyber UI theme intact.
+        </p>
+      </div>
+
+      <aside class="intro-panel">
+        <div class="panel-title">Why This Screen Exists</div>
+        <div class="signal-list">
+          <div class="signal-item">
+            <strong>Current State</strong>
+            <span>The app currently demonstrates the prototype workflow directly inside the operational dashboard.</span>
+          </div>
+          <div class="signal-item">
+            <strong>Future Direction</strong>
+            <span>Nova RL should first explain the mission, architecture, and impact before users enter the operator workspace.</span>
+          </div>
+          <div class="signal-item">
+            <strong>Entry Intent</strong>
+            <span>This page now acts as the landing narrative for judges, teammates, and future stakeholders.</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="metric-strip" aria-label="Nova RL key metrics">
+    <article class="metric-card">
+      <span class="metric-value">6</span>
+      <span class="metric-label">Cooperating Agents</span>
+      <div class="metric-copy">Each Nova pipeline phase becomes an autonomous RL decision-maker with fixed observations and parametric actions.</div>
+    </article>
+    <article class="metric-card">
+      <span class="metric-value">500-5000</span>
+      <span class="metric-label">Rows Per Episode</span>
+      <div class="metric-copy">Procedural DataGen creates batches with anomaly injection, schema drift, and correlated faults for robust training.</div>
+    </article>
+    <article class="metric-card">
+      <span class="metric-value">5</span>
+      <span class="metric-label">Batches Per Episode</span>
+      <div class="metric-copy">Multi-batch episodes preserve memory and expose temporal trends instead of reducing learning to one-shot actions.</div>
+    </article>
+    <article class="metric-card">
+      <span class="metric-value">0</span>
+      <span class="metric-label">External Calls</span>
+      <div class="metric-copy">Air-gapped architecture, local inference paths, and policy-enforced safety keep the remediation flow production-aware.</div>
+    </article>
+  </section>
+
+  <section class="story-grid">
+    <article class="story-card">
+      <div class="section-label">
+        <span>[01]</span>
+        <h2>Project Vision</h2>
+      </div>
+      <p>
+        Nova RL extends Project Nova from a deterministic ETL remediation benchmark into a cooperative MARL environment.
+        The goal is not only anomaly handling, but reliable promotion of remediated data under latency, safety, and
+        explainability constraints.
+      </p>
+      <p>
+        The OpenEnv-compatible wrapper, <strong>NovaPipelineEnv</strong>, exposes a single environment outwardly while
+        internally coordinating six sequential agents. That lets the system remain hackathon-deployable today while still
+        pointing toward a production-grade learning architecture tomorrow.
+      </p>
+      <div class="story-list">
+        <div class="story-list-item">
+          <strong>Production-grounded learning</strong>
+          <span>Reward design balances promotion accuracy, quarantine rate, and latency instead of optimizing a toy metric.</span>
+        </div>
+        <div class="story-list-item">
+          <strong>Safety as an invariant</strong>
+          <span>PII restrictions, reconciliation checks, and sandbox rejections live at the environment level, not just in reward shaping.</span>
+        </div>
+        <div class="story-list-item">
+          <strong>Real-world uncertainty</strong>
+          <span>Noisy mock SLM behavior prepares Agent 3 for low-confidence output, malformed responses, and plausible but broken remediations.</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="story-card">
+      <div class="section-label">
+        <span>[02]</span>
+        <h2>6-Phase Agent Flow</h2>
+      </div>
+      <div class="phase-timeline">
+        <div class="phase-step">
+          <div class="phase-index">Agent 1</div>
+          <div class="phase-copy">
+            <strong>Ingestion Agent</strong>
+            <span>Detects schema drift, null-rate anomalies, type mismatches, and duplicate-key risk using threshold-based validation signals.</span>
+          </div>
+        </div>
+        <div class="phase-step">
+          <div class="phase-index">Agent 2</div>
+          <div class="phase-copy">
+            <strong>Clustering Agent</strong>
+            <span>Controls semantic grouping and cache acceptance so remediation work scales beyond isolated row-level fixes.</span>
+          </div>
+        </div>
+        <div class="phase-step">
+          <div class="phase-index">Agent 3</div>
+          <div class="phase-copy">
+            <strong>Remediation Agent</strong>
+            <span>Selects FAST_PATH, SLM generation, or escalation while accounting for confidence, latency, and downstream failure feedback.</span>
+          </div>
+        </div>
+        <div class="phase-step">
+          <div class="phase-index">Agent 4</div>
+          <div class="phase-copy">
+            <strong>Execution Agent</strong>
+            <span>Runs safe lambda execution decisions with sandbox awareness and corruption-rate feedback.</span>
+          </div>
+        </div>
+        <div class="phase-step">
+          <div class="phase-index">Agent 5</div>
+          <div class="phase-copy">
+            <strong>Guardrails Agent</strong>
+            <span>Applies policy enforcement, circuit-breaker logic, and no-promote constraints for sensitive or risky data paths.</span>
+          </div>
+        </div>
+        <div class="phase-step">
+          <div class="phase-index">Agent 6</div>
+          <div class="phase-copy">
+            <strong>Promotion Agent</strong>
+            <span>Owns the final production gate and global reward signal based on correctly remediated anomalous rows.</span>
+          </div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="roadmap-grid">
+    <article class="roadmap-card">
+      <div class="section-label">
+        <span>[03]</span>
+        <h2>Prototype to Product</h2>
+      </div>
+      <p>
+        The current prototype already demonstrates the operating pattern that the larger system needs: configure the
+        backend, initialize a session, inspect state, execute decisions, and observe reward-driven outcomes.
+      </p>
+      <div class="roadmap-list">
+        <div class="roadmap-step">
+          <strong>Current prototype workflow</strong>
+          <span>Setup, task selection, live observation, action execution, and result logging are already present in the dashboard below.</span>
+        </div>
+        <div class="roadmap-step">
+          <strong>What changes in the full vision</strong>
+          <span>The same operational surface becomes the human oversight layer for a six-agent ETL remediation environment instead of a summarized demo.</span>
+        </div>
+        <div class="roadmap-step">
+          <strong>Why this matters</strong>
+          <span>This landing page now frames the prototype as a controlled preview of the broader Nova RL system rather than the final product itself.</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="roadmap-card">
+      <div class="section-label">
+        <span>[04]</span>
+        <h2>Workflow Mapping</h2>
+      </div>
+      <div class="roadmap-list">
+        <div class="roadmap-step">
+          <strong>Prototype Step 0-1</strong>
+          <span>Operator setup and session boot mirror environment initialization, provider selection, and reset orchestration.</span>
+        </div>
+        <div class="roadmap-step">
+          <strong>Prototype Step 2-3</strong>
+          <span>Task choice and state inspection map to batch generation, active-agent context, and typed observation visibility.</span>
+        </div>
+        <div class="roadmap-step">
+          <strong>Prototype Step 4-5</strong>
+          <span>Action execution and results console represent policy application, reward feedback, logs, and episode completion review.</span>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="team-grid">
+    <article class="team-card">
+      <div class="section-label">
+        <span>[05]</span>
+        <h2>Team BytePair</h2>
+      </div>
+      <p>
+        Nova RL was framed as a Meta PyTorch OpenEnv Hackathon submission with a clear execution split, grounded
+        implementation choices, and transparent limitation tracking.
+      </p>
+      <div class="team-list">
+        <div class="team-line">
+          <strong>Aryan Verma</strong>
+          <span>NovaPipelineEnv wrapper, DataGen, reward system, approximated difference rewards, safety constraints, and Agents 3-6 ownership.</span>
+        </div>
+        <div class="team-line">
+          <strong>Aadyaa Soni</strong>
+          <span>Agents 1-2 implementation, ChromaDB integration, OpenEnv packaging, deployment work, and platform readiness.</span>
+        </div>
+        <div class="team-line">
+          <strong>Shared Execution</strong>
+          <span>Integration testing, noisy mock SLM behavior, demo flow, documentation, validation, and submission packaging.</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="team-card">
+      <div class="section-label">
+        <span>[06]</span>
+        <h2>What Opens Next</h2>
+      </div>
+      <p>
+        Clicking the fixed <strong>Get Started</strong> button takes the user directly into the current interactive working page.
+        That lower section remains your live prototype workspace, now positioned as the operational console after the vision briefing.
+      </p>
+      <p>
+        This keeps the existing dashboard intact while making the first impression stronger, more intentional, and closer to the
+        actual Nova RL story described in the project document.
+      </p>
+    </article>
+  </section>
+</div>
+
+<div class="cta-dock">
+  <button class="cta-btn" type="button" id="get-started-btn">Get Started</button>
+</div>
+
+<div class="shell" id="main-app">
+  <div class="app-anchor">Prototype Workspace · Current Working Page</div>
   <header class="hero panel">
     <div class="hero-top">
       <div class="badge-row">
@@ -1201,6 +1836,8 @@
     thresholdRange: document.getElementById("threshold-range"),
     thresholdValue: document.getElementById("threshold-value"),
     notesInput: document.getElementById("notes-input"),
+    getStartedBtn: document.getElementById("get-started-btn"),
+    mainApp: document.getElementById("main-app"),
   };
 
   function nowTime() {
@@ -1778,6 +2415,27 @@
     }
   }
 
+  function setupLandingExperience() {
+    if (!el.getStartedBtn || !el.mainApp) return;
+
+    const openMainApp = () => {
+      document.body.classList.add("app-focused");
+      el.mainApp.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
+    el.getStartedBtn.addEventListener("click", openMainApp);
+
+    if ("IntersectionObserver" in window) {
+      const observer = new IntersectionObserver((entries) => {
+        const [entry] = entries;
+        document.body.classList.toggle("app-focused", entry.isIntersecting);
+      }, {
+        threshold: 0.18,
+      });
+      observer.observe(el.mainApp);
+    }
+  }
+
   function bindStaticEvents() {
     document.getElementById("confirm-setup-btn").addEventListener("click", () => {
       syncConfigFromInputs();
@@ -1882,6 +2540,7 @@
 
   async function init() {
     el.thresholdValue.textContent = Number(el.thresholdRange.value).toFixed(2);
+    setupLandingExperience();
     bindStaticEvents();
     renderStatus();
     renderConsole();
